@@ -2072,11 +2072,9 @@ body.loaded .mission-hud {
   top: calc(var(--header-height) + 0.75rem);
   right: 1rem;
   z-index: 9500;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  width: min(320px, calc(100vw - 2rem));
+  min-height: 3.35rem;
   pointer-events: none;
-  max-width: min(320px, calc(100vw - 2rem));
 }
 
 .achievement-toast {
@@ -2088,20 +2086,19 @@ body.loaded .mission-hud {
   border: 1px solid rgba(255, 0, 170, 0.45);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   opacity: 0;
-  transform: translateX(110%) translateY(calc(var(--stack-index, 0) * -10px));
-  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(112%);
+  transition: opacity 0.38s ease, transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), filter 0.38s ease;
   will-change: opacity, transform;
   pointer-events: auto;
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: 100%;
   touch-action: pan-y;
   cursor: grab;
   user-select: none;
   backdrop-filter: blur(8px);
-  margin-bottom: -0.55rem;
-}
-
-.achievement-toast:last-child {
-  margin-bottom: 0;
 }
 
 .achievement-toast--compact .achievement-tag,
@@ -2154,13 +2151,23 @@ body.loaded .mission-hud {
 
 .achievement-toast.is-visible {
   opacity: 1;
-  transform: translateX(0) translateY(calc(var(--stack-index, 0) * -10px));
+  transform: translateX(0);
+}
+
+.achievement-toast--under.is-visible {
+  opacity: 0.72;
+  transform: translateX(0) scale(0.96);
+  filter: brightness(0.78);
+}
+
+.achievement-toast--cover.is-visible {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
 }
 
 .achievement-toast.leaving {
   opacity: 0;
-  transform: translateX(110%) translateY(calc(var(--stack-index, 0) * -10px));
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform: translateX(112%);
+  transition: opacity 0.36s ease, transform 0.36s ease;
 }
 
 .achievement-icon {
@@ -2783,7 +2790,7 @@ body.loaded .mission-hud {
     bottom: auto;
     right: 0.65rem;
     left: auto;
-    max-width: min(320px, calc(100vw - var(--mobile-rail) - env(safe-area-inset-left, 0px) - 1rem));
+    width: min(320px, calc(100vw - var(--mobile-rail) - env(safe-area-inset-left, 0px) - 1rem));
     z-index: 9500;
   }
 

@@ -1323,11 +1323,11 @@
   let dismissSoundPending = false;
   const ACHIEVEMENT_SOUND_GAP = 380;
   const SOUND_LEAD_MS = 220;
-  const TOAST_STAGGER_MS = 320;
+  const COVER_DISMISS_MS = 360;
   let scrollAchievementsReady = false;
-  let lastScrollY = window.scrollY;
-  let pushStaggerGen = 0;
-  let lastMissingKey = '';
+  let activeDisplayedId = null;
+  let coverDismissTimer = null;
+  let coverTransitionGen = 0;
   const SCROLL_ACTIVATE = 48;
   const SCROLL_HERO_ENTER = 36;
   const SCROLL_HERO_LEAVE = 58;
@@ -1377,105 +1377,94 @@
     return ids;
   }
 
-  function updateToastStackLayout() {
-    toastStackOrder.forEach((id, index) => {
-      const toast = toastById.get(id);
-      if (!toast || toast.classList.contains('leaving')) return;
-      toast.style.setProperty('--stack-index', String(index));
-      toast.style.zIndex = String(20 + index);
-    });
-  }
-
-  function removeToastSilently(id) {
+  function dismissToastToSide(id) {
     const idx = toastStackOrder.indexOf(id);
     const toast = toastById.get(id);
     if (!toast) return;
 
     if (idx !== -1) toastStackOrder.splice(idx, 1);
     toastById.delete(id);
-    toast.classList.remove('is-visible', 'is-dragging');
-    toast.classList.add('leaving');
+    toast.classList.remove('is-visible', 'is-dragging', 'achievement-toast--under', 'achievement-toast--cover');
+    toast.style.zIndex = '';
     toast.style.transform = '';
     toast.style.opacity = '';
-    setTimeout(() => {
-      toast.remove();
-      updateToastStackLayout();
-    }, 450);
+    toast.classList.add('leaving');
+    window.setTimeout(() => toast.remove(), 420);
+
+    if (activeDisplayedId === id) activeDisplayedId = null;
   }
 
-  function popToast(withSound = false, playDismissSound = false) {
-    if (toastStackOrder.length === 0) return;
-    const id = toastStackOrder.pop();
-    const toast = toastById.get(id);
-    if (!toast) return;
+  function transitionToAchievement(activeId) {
+    if (activeId === activeDisplayedId) return;
 
-    toastById.delete(id);
-    userDismissed.delete(id);
-    toast.classList.remove('is-visible', 'is-dragging');
-    toast.classList.add('leaving');
-    toast.style.transform = '';
-    toast.style.opacity = '';
-    setTimeout(() => {
-      toast.remove();
-      updateToastStackLayout();
-    }, 450);
+    if (coverDismissTimer) {
+      clearTimeout(coverDismissTimer);
+      coverDismissTimer = null;
+    }
 
-    if (playDismissSound) queueDismissSound();
-    else if (withSound) queueDismissSound();
+    coverTransitionGen += 1;
+    const gen = coverTransitionGen;
+    const oldId = activeDisplayedId;
+    activeDisplayedId = activeId;
+
+    if (!activeId) {
+      if (oldId) dismissToastToSide(oldId);
+      [...toastStackOrder].forEach((id) => dismissToastToSide(id));
+      return;
+    }
+
+    if (userDismissed.has(activeId)) {
+      if (oldId && oldId !== activeId) dismissToastToSide(oldId);
+      return;
+    }
+
+    [...toastStackOrder].forEach((id) => {
+      if (id !== oldId) dismissToastToSide(id);
+    });
+
+    const achievement = getAchievementById(activeId);
+    if (!achievement) return;
+
+    markUnlocked(activeId);
+
+    if (toastById.has(activeId)) {
+      const existing = toastById.get(activeId);
+      existing.classList.remove('leaving', 'achievement-toast--under');
+      existing.classList.add('achievement-toast--cover', 'is-visible');
+      existing.style.zIndex = '2';
+    } else {
+      pushToast(achievement, false, false);
+      const newToast = toastById.get(activeId);
+      if (newToast) {
+        newToast.classList.add('achievement-toast--cover');
+        newToast.style.zIndex = '2';
+      }
+    }
+
+    if (oldId && oldId !== activeId && toastById.has(oldId)) {
+      const oldToast = toastById.get(oldId);
+      oldToast.classList.remove('achievement-toast--cover');
+      oldToast.classList.add('achievement-toast--under', 'is-visible');
+      oldToast.style.zIndex = '1';
+      coverDismissTimer = window.setTimeout(() => {
+        if (gen !== coverTransitionGen) return;
+        dismissToastToSide(oldId);
+      }, COVER_DISMISS_MS);
+    }
   }
 
   function syncScrollAchievements() {
     if (!scrollAchievementsReady || !achievementStack) return;
     if (toastById.has('transmission')) return;
 
-    const y = window.scrollY;
-    const scrollDir = y > lastScrollY + 2 ? 'down' : y < lastScrollY - 2 ? 'up' : 'none';
-    lastScrollY = y;
-
-    const targetIds = getTargetStackIds(scrollDir === 'none' ? 'down' : scrollDir);
+    const targetIds = getTargetStackIds('down');
+    const activeId = targetIds.length ? targetIds[targetIds.length - 1] : null;
 
     userDismissed.forEach((id) => {
       if (!targetIds.includes(id)) userDismissed.delete(id);
     });
 
-    const needsPop =
-      toastStackOrder.length > targetIds.length ||
-      (toastStackOrder.length > 0 &&
-        toastStackOrder[toastStackOrder.length - 1] !== targetIds[targetIds.length - 1]);
-
-    if (needsPop) {
-      popToast(false, true);
-    }
-
-    if (scrollDir === 'up') return;
-
-    const missing = [];
-    for (let i = 0; i < targetIds.length; i++) {
-      const id = targetIds[i];
-      if (userDismissed.has(id)) continue;
-      if (!toastById.has(id)) missing.push(id);
-    }
-
-    if (missing.length === 0) return;
-
-    const missingKey = missing.join(',');
-    if (missingKey !== lastMissingKey) {
-      pushStaggerGen += 1;
-      lastMissingKey = missingKey;
-    }
-    const gen = pushStaggerGen;
-
-    missing.forEach((id, index) => {
-      window.setTimeout(() => {
-        if (gen !== pushStaggerGen) return;
-        if (userDismissed.has(id)) return;
-        const latestTarget = getTargetStackIds('down');
-        if (!latestTarget.includes(id)) return;
-        const achievement = getAchievementById(id);
-        if (!achievement) return;
-        pushToast(achievement, false, false);
-      }, index * TOAST_STAGGER_MS);
-    });
+    transitionToAchievement(activeId);
   }
 
   async function playAchievementSound(achievement) {
@@ -1592,15 +1581,15 @@
       userDismissed.add(id);
     }
 
+    if (activeDisplayedId === id) activeDisplayedId = null;
+
     toastById.delete(id);
-    toast.classList.remove('is-visible', 'is-dragging');
+    toast.classList.remove('is-visible', 'is-dragging', 'achievement-toast--under', 'achievement-toast--cover');
+    toast.style.zIndex = '';
     toast.classList.add('leaving');
     toast.style.transform = '';
     toast.style.opacity = '';
-    setTimeout(() => {
-      toast.remove();
-      updateToastStackLayout();
-    }, 450);
+    window.setTimeout(() => toast.remove(), 420);
 
     if (playDismissSound) queueDismissSound();
   }
@@ -1633,9 +1622,7 @@
       if (!dragging || e.pointerId !== pointerId) return;
       currentX = e.clientX - startX;
       if (currentX > 0) {
-        const stackShift = toast.style.getPropertyValue('--stack-index') || '0';
-        const offset = Number(stackShift) * 10;
-        toast.style.transform = `translateX(${currentX}px) translateY(calc(${offset}px * -1))`;
+        toast.style.transform = `translateX(${currentX}px)`;
         toast.style.opacity = String(Math.max(0.3, 1 - currentX / 200));
       }
     };
@@ -1652,7 +1639,6 @@
       if (currentX > 72) {
         dismissToast(achievementId, true);
       } else {
-        updateToastStackLayout();
         toast.style.transform = '';
         toast.style.opacity = '';
       }
@@ -1680,12 +1666,8 @@
     toastStackOrder.push(achievement.id);
 
     const revealToast = () => {
-      updateToastStackLayout();
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          toast.classList.add('is-visible');
-          updateToastStackLayout();
-        });
+        requestAnimationFrame(() => toast.classList.add('is-visible'));
       });
     };
 
@@ -1704,11 +1686,15 @@
     if (userDismissed.has(achievement.id)) return;
     if (!achievementStack) return;
 
-    [...toastStackOrder].forEach((id) => {
-      if (id !== achievement.id) removeToastSilently(id);
-    });
+    [...toastStackOrder].forEach((id) => dismissToastToSide(id));
 
     pushToast(achievement, true, true);
+    activeDisplayedId = achievement.id;
+    const toast = toastById.get(achievement.id);
+    if (toast) {
+      toast.classList.add('achievement-toast--cover');
+      toast.style.zIndex = '2';
+    }
   }
 
   function startScrollAchievements() {
