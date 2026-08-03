@@ -2073,13 +2073,13 @@ body.loaded .mission-hud {
   right: 1rem;
   z-index: 9500;
   width: min(320px, calc(100vw - 2rem));
-  min-height: 3.35rem;
+  min-height: 5.25rem;
   pointer-events: none;
 }
 
 .achievement-toast {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.65rem;
   padding: 0.65rem 2rem 0.65rem 0.85rem;
   background: rgba(3, 0, 20, 0.94);
@@ -2099,21 +2099,6 @@ body.loaded .mission-hud {
   cursor: grab;
   user-select: none;
   backdrop-filter: blur(8px);
-}
-
-.achievement-toast--compact .achievement-tag,
-.achievement-toast--compact .achievement-desc {
-  display: none;
-}
-
-.achievement-toast--compact .achievement-body {
-  display: flex;
-  align-items: center;
-  min-height: 1.25rem;
-}
-
-.achievement-toast--compact .achievement-title {
-  margin-bottom: 0;
 }
 
 .achievement-toast.is-dragging {
@@ -2173,6 +2158,7 @@ body.loaded .mission-hud {
 .achievement-icon {
   font-size: 1.15rem;
   line-height: 1;
+  margin-top: 0.15rem;
   filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.55));
 }
 
@@ -2798,8 +2784,16 @@ body.loaded .mission-hud {
     padding: 0.55rem 1.75rem 0.55rem 0.7rem;
   }
 
+  .achievement-tag {
+    font-size: 0.58rem;
+  }
+
   .achievement-title {
     font-size: 0.66rem;
+  }
+
+  .achievement-desc {
+    font-size: 0.68rem;
   }
 
   .back-to-top {

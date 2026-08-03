@@ -1566,7 +1566,7 @@
 
   function buildToastElement(achievement) {
     const toast = document.createElement('div');
-    toast.className = 'achievement-toast achievement-toast--compact';
+    toast.className = 'achievement-toast';
     toast.dataset.achievementId = achievement.id;
     toast.innerHTML = `
       <span class="achievement-icon">${achievement.icon}</span>
