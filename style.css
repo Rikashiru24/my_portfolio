@@ -2758,48 +2758,37 @@ body.loaded .mission-hud {
   }
 
   .achievement-stack {
-    top: auto;
-    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 11rem);
     right: 0.65rem;
-    left: calc(var(--mobile-rail) + env(safe-area-inset-left, 0px) + 0.5rem);
-    max-width: none;
-    gap: 0.35rem;
-    z-index: 9400;
+    left: auto;
+    max-width: min(220px, calc(100vw - var(--mobile-rail) - env(safe-area-inset-left, 0px) - 1rem));
+    gap: 0.4rem;
+    z-index: 9500;
   }
 
   .achievement-toast {
-    gap: 0.45rem;
-    padding: 0.5rem 1.75rem 0.5rem 0.65rem;
-    transform: translateY(120%);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), var(--glow-mag);
-  }
-
-  .achievement-toast.is-visible {
-    transform: translateY(0);
-  }
-
-  .achievement-toast.leaving {
-    transform: translateY(120%);
-  }
-
-  .achievement-tag,
-  .achievement-desc {
-    display: none;
-  }
-
-  .achievement-body {
-    display: flex;
-    align-items: center;
-    min-height: 1.35rem;
-  }
-
-  .achievement-title {
-    font-size: 0.68rem;
-    margin-bottom: 0;
+    gap: 0.5rem;
+    padding: 0.55rem 1.85rem 0.55rem 0.7rem;
   }
 
   .achievement-icon {
-    font-size: 1rem;
+    font-size: 1.05rem;
+  }
+
+  .achievement-tag {
+    font-size: 0.52rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.1rem;
+  }
+
+  .achievement-title {
+    font-size: 0.65rem;
+    margin-bottom: 0.05rem;
+  }
+
+  .achievement-desc {
+    font-size: 0.62rem;
+    line-height: 1.35;
   }
 
   .achievement-dismiss {
@@ -2911,12 +2900,28 @@ body.loaded .mission-hud {
     width: 100%;
   }
 
+  .achievement-stack {
+    max-width: min(195px, calc(100vw - var(--mobile-rail) - env(safe-area-inset-left, 0px) - 1rem));
+  }
+
   .achievement-toast {
-    padding: 0.45rem 1.55rem 0.45rem 0.55rem;
+    padding: 0.45rem 1.65rem 0.45rem 0.6rem;
+  }
+
+  .achievement-icon {
+    font-size: 0.95rem;
+  }
+
+  .achievement-tag {
+    font-size: 0.48rem;
   }
 
   .achievement-title {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
+  }
+
+  .achievement-desc {
+    font-size: 0.58rem;
   }
 }
 

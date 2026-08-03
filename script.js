@@ -1232,20 +1232,11 @@
   const achievementSoundQueue = [];
   let achievementSoundPlaying = false;
   let dismissSoundPending = false;
-  let syncAchievementsScheduled = false;
-  let pushStaggerGen = 0;
-  let lastMissingKey = '';
   const ACHIEVEMENT_SOUND_GAP = 380;
-  const TOAST_STAGGER_MS = 340;
   const SOUND_LEAD_MS = 220;
-  const MOBILE_AUTO_DISMISS_MS = 3200;
-  const MOBILE_MQ = window.matchMedia('(max-width: 768px)');
-  const mobileAutoDismissTimers = new Map();
-  let lastScrollY = window.scrollY;
+  const SECTION_VIEW_RATIO = 0.38;
   let scrollAchievementsReady = false;
   const SCROLL_ACTIVATE = 48;
-  const SCROLL_HERO_ENTER = 36;
-  const SCROLL_HERO_LEAVE = 58;
 
   const ACHIEVEMENT_SOUNDS = {
     hero: 'neutral',
@@ -1259,44 +1250,73 @@
     return ACHIEVEMENTS.find(a => a.id === id);
   }
 
-  function isMobileView() {
-    return MOBILE_MQ.matches;
+  function isSectionActive(section, id) {
+    if (!section) return false;
+    if (id === 'hero' && window.scrollY < SCROLL_ACTIVATE) return false;
+
+    const rect = section.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const visibleTop = Math.max(rect.top, 0);
+    const visibleBottom = Math.min(rect.bottom, viewportHeight);
+    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    const focusBandTop = viewportHeight * 0.22;
+    const focusBandBottom = viewportHeight * 0.72;
+    const sectionCenter = rect.top + rect.height * 0.42;
+    const centerInFocusBand = sectionCenter >= focusBandTop && sectionCenter <= focusBandBottom;
+    const enoughVisible = visibleHeight >= Math.min(rect.height, viewportHeight) * SECTION_VIEW_RATIO;
+
+    return centerInFocusBand && enoughVisible;
   }
 
-  function isScrollTriggeredAchievement(id) {
-    return SECTION_ORDER.includes(id) || id === 'scroll100';
+  function showSectionAchievement(id) {
+    if (!scrollAchievementsReady || !achievementStack) return;
+    if (userDismissed.has(id)) return;
+
+    const achievement = getAchievementById(id);
+    if (!achievement) return;
+
+    if (id === 'scroll100') {
+      if (getScrollProgress() < 98) return;
+    } else {
+      const section = document.querySelector(achievement.selector);
+      if (!section || !isSectionActive(section, id)) return;
+    }
+
+    const existing = toastById.get(id);
+    if (existing && !existing.classList.contains('leaving')) return;
+
+    pushToast(achievement, true, true);
   }
 
-  function shouldPlayAchievementSound(achievement) {
-    if (!achievement) return false;
-    if (!isMobileView()) return true;
-    return achievement.type === 'form';
-  }
+  function syncSectionAchievements() {
+    if (!scrollAchievementsReady || !achievementStack) return;
 
-  function clearMobileAutoDismiss(id) {
-    const timer = mobileAutoDismissTimers.get(id);
-    if (timer) {
-      clearTimeout(timer);
-      mobileAutoDismissTimers.delete(id);
+    for (const id of SECTION_ORDER) {
+      showSectionAchievement(id);
+    }
+
+    if (getScrollProgress() >= 98) {
+      showSectionAchievement('scroll100');
     }
   }
 
-  function scheduleMobileAutoDismiss(id, achievement) {
-    if (!isMobileView() || !achievement) return;
-    if (achievement.type === 'form') return;
+  function initSectionAchievementObservers() {
+    SECTION_ORDER.forEach((id) => {
+      const achievement = getAchievementById(id);
+      const section = achievement && document.querySelector(achievement.selector);
+      if (!section) return;
 
-    clearMobileAutoDismiss(id);
-    const timer = window.setTimeout(() => {
-      mobileAutoDismissTimers.delete(id);
-      dismissToast(id, false);
-    }, MOBILE_AUTO_DISMISS_MS);
-    mobileAutoDismissTimers.set(id, timer);
-  }
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting || entry.intersectionRatio < SECTION_VIEW_RATIO) return;
+          showSectionAchievement(id);
+        });
+      }, {
+        threshold: [0, SECTION_VIEW_RATIO, 0.55, 0.75],
+        rootMargin: '-18% 0px -28% 0px'
+      });
 
-  function dismissOtherMobileToasts(keepId) {
-    if (!isMobileView()) return;
-    [...toastStackOrder].forEach((id) => {
-      if (id !== keepId) dismissToast(id, false);
+      observer.observe(section);
     });
   }
 
@@ -1409,8 +1429,6 @@
     const toast = toastById.get(id);
     if (!toast) return;
 
-    clearMobileAutoDismiss(id);
-
     if (idx !== -1) {
       toastStackOrder.splice(idx, 1);
       userDismissed.add(id);
@@ -1500,10 +1518,8 @@
     const existing = toastById.get(achievement.id);
     if (existing && !existing.classList.contains('leaving')) return;
 
-    dismissOtherMobileToasts(achievement.id);
     markUnlocked(achievement.id);
 
-    const playSound = withSound && shouldPlayAchievementSound(achievement);
     const toast = buildToastElement(achievement);
     achievementStack.appendChild(toast);
     toastById.set(achievement.id, toast);
@@ -1511,175 +1527,34 @@
 
     const revealToast = () => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          toast.classList.add('is-visible');
-          scheduleMobileAutoDismiss(achievement.id, achievement);
-        });
+        requestAnimationFrame(() => toast.classList.add('is-visible'));
       });
     };
 
-    if (playSound && soundFirst) {
+    if (withSound && soundFirst) {
       queueAchievementSound(achievement);
       setTimeout(revealToast, SOUND_LEAD_MS);
-    } else if (playSound) {
+    } else if (withSound) {
       revealToast();
       queueAchievementSound(achievement);
     } else {
       revealToast();
     }
-  }
-
-  function popToast(withSound = true, soundFirst = false) {
-    if (toastStackOrder.length === 0) return;
-    const id = toastStackOrder.pop();
-    const toast = toastById.get(id);
-    if (!toast) return;
-
-    const achievement = getAchievementById(id);
-
-    const hideToast = () => {
-      toastById.delete(id);
-      userDismissed.delete(id);
-      toast.classList.remove('is-visible', 'is-dragging');
-      toast.classList.add('leaving');
-      toast.style.transform = '';
-      toast.style.opacity = '';
-      setTimeout(() => toast.remove(), 450);
-    };
-
-    if (withSound && soundFirst && achievement) {
-      queueAchievementSound(achievement);
-      setTimeout(hideToast, SOUND_LEAD_MS);
-    } else {
-      hideToast();
-      if (withSound) queueDismissSound();
-    }
-  }
-
-  function getTargetStackIds(scrollDir) {
-    const ids = [];
-    const y = window.scrollY;
-
-    if (y < SCROLL_ACTIVATE) {
-      return ids;
-    }
-
-    const heroThreshold = scrollDir === 'up' ? SCROLL_HERO_LEAVE : SCROLL_HERO_ENTER;
-    if (y > heroThreshold) {
-      ids.push('hero');
-    }
-
-    const enterAt = window.innerHeight * (scrollDir === 'up' ? 0.76 : 0.64);
-
-    for (const id of SECTION_ORDER.slice(1)) {
-      const achievement = getAchievementById(id);
-      const section = achievement && document.querySelector(achievement.selector);
-      if (!section) break;
-      if (section.getBoundingClientRect().top <= enterAt) {
-        ids.push(id);
-      } else {
-        break;
-      }
-    }
-
-    if (getScrollProgress() >= 98 && ids.length === SECTION_ORDER.length) {
-      ids.push('scroll100');
-    }
-
-    return ids;
-  }
-
-  function syncScrollAchievements() {
-    if (!scrollAchievementsReady || !achievementStack) return;
-
-    const y = window.scrollY;
-    const scrollDir = y > lastScrollY + 2 ? 'down' : y < lastScrollY - 2 ? 'up' : 'none';
-    lastScrollY = y;
-
-    const targetIds = getTargetStackIds(scrollDir === 'none' ? 'down' : scrollDir);
-
-    userDismissed.forEach((id) => {
-      if (!targetIds.includes(id)) userDismissed.delete(id);
-    });
-
-    const needsPop =
-      toastStackOrder.length > targetIds.length ||
-      (toastStackOrder.length > 0 &&
-        toastStackOrder[toastStackOrder.length - 1] !== targetIds[toastStackOrder.length - 1]);
-
-    if (needsPop) {
-      if (scrollDir === 'up') {
-        popToast(true, true);
-      } else {
-        while (toastStackOrder.length > targetIds.length) popToast(false);
-        while (
-          toastStackOrder.length > 0 &&
-          toastStackOrder[toastStackOrder.length - 1] !== targetIds[toastStackOrder.length - 1]
-        ) {
-          popToast(false);
-        }
-      }
-    }
-
-    if (scrollDir === 'up') return;
-
-    const missing = [];
-    for (let i = 0; i < targetIds.length; i++) {
-      const id = targetIds[i];
-      if (userDismissed.has(id)) continue;
-      if (i >= toastStackOrder.length) missing.push(id);
-    }
-
-    if (missing.length === 0) return;
-
-    if (isMobileView()) {
-      const latestMissing = missing[missing.length - 1];
-      if (latestMissing && !toastById.has(latestMissing)) {
-        const achievement = getAchievementById(latestMissing);
-        if (achievement) pushToast(achievement, false, false);
-      }
-      return;
-    }
-
-    const missingKey = missing.join(',');
-    if (missingKey !== lastMissingKey) {
-      pushStaggerGen += 1;
-      lastMissingKey = missingKey;
-    }
-    const gen = pushStaggerGen;
-
-    missing.forEach((id, index) => {
-      setTimeout(() => {
-        if (gen !== pushStaggerGen) return;
-        if (userDismissed.has(id)) return;
-        const latestTarget = getTargetStackIds('down');
-        if (!latestTarget.includes(id)) return;
-        const achievement = getAchievementById(id);
-        if (!achievement) return;
-        pushToast(achievement, true, true);
-      }, index * TOAST_STAGGER_MS);
-    });
-  }
-
-  function scheduleSyncScrollAchievements() {
-    if (syncAchievementsScheduled) return;
-    syncAchievementsScheduled = true;
-    requestAnimationFrame(() => {
-      syncAchievementsScheduled = false;
-      syncScrollAchievements();
-    });
   }
 
   function showOneTimeAchievement(achievement) {
-    if (unlocked.has(achievement.id)) return;
+    if (userDismissed.has(achievement.id)) return;
     if (!achievementStack) return;
     pushToast(achievement, true, true);
   }
 
   function startScrollAchievements() {
     scrollAchievementsReady = true;
+    syncSectionAchievements();
   }
   startScrollAchievementsFn = startScrollAchievements;
+
+  initSectionAchievementObservers();
 
   if (!introSplash) {
     setTimeout(startScrollAchievements, 400);
@@ -1690,7 +1565,7 @@
     if (hudProgress) hudProgress.textContent = `${progress}%`;
     if (hudXpFill) hudXpFill.style.width = `${progress}%`;
     if (hudXpBar) hudXpBar.setAttribute('aria-valuenow', String(progress));
-    scheduleSyncScrollAchievements();
+    syncSectionAchievements();
   }
 
   function updateSessionTimer() {
