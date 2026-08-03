@@ -4,8 +4,7 @@
   'use strict';
 
   const CONTACT_CONFIG = {
-    recipientEmail: 'harvinarisga@gmail.com',
-    appsScriptUrl: ''
+    recipientEmail: 'harvinarisga@gmail.com'
   };
 
   /* --- Intro Splash --- */
@@ -1054,10 +1053,9 @@
     counterObserver.observe(statEl);
   });
 
-  /* --- Contact Form + Gmail Verification --- */
+  /* --- Contact Form --- */
   const form = document.getElementById('contact-form');
   const GMAIL_PATTERN = /^[^\s@]+@(gmail|googlemail)\.com$/i;
-  let verifiedEmailForCode = '';
 
   function normalizeGmail(email) {
     const value = email.trim().toLowerCase();
@@ -1071,15 +1069,22 @@
     return '';
   }
 
-  async function postToContactBackend(payload) {
-    if (!CONTACT_CONFIG.appsScriptUrl) {
-      throw new Error('Contact form is not configured yet. Add your Google Apps Script URL in script.js.');
-    }
-
-    const response = await fetch(CONTACT_CONFIG.appsScriptUrl, {
+  async function sendContactEmail(payload) {
+    const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(CONTACT_CONFIG.recipientEmail)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({
+        name: payload.name,
+        email: payload.email,
+        message: payload.message,
+        _subject: `Portfolio transmission from ${payload.name}`,
+        _template: 'table',
+        _captcha: 'false',
+        _replyto: payload.email
+      })
     });
 
     let data = {};
@@ -1089,21 +1094,15 @@
       data = {};
     }
 
-    if (!response.ok || !data.success) {
-      throw new Error(data.error || 'Request failed. Please try again.');
+    if (!response.ok || (data.success !== 'true' && data.success !== true)) {
+      throw new Error('Could not send your message. Please try again in a moment.');
     }
-
-    return data;
   }
 
   if (form) {
     const submitBtn = document.getElementById('contact-submit');
-    const sendCodeBtn = document.getElementById('send-code-btn');
     const formError = document.getElementById('form-error');
     const formSuccess = document.getElementById('form-success');
-    const codeGroup = document.getElementById('code-group');
-    const verifyCodeInput = document.getElementById('verify-code');
-    const emailVerifyStatus = document.getElementById('email-verify-status');
 
     const fields = {
       name: {
@@ -1115,11 +1114,6 @@
         el: document.getElementById('email'),
         error: document.getElementById('email-error'),
         validate: validateGmailField
-      },
-      code: {
-        el: verifyCodeInput,
-        error: document.getElementById('code-error'),
-        validate: v => /^\d{6}$/.test(v.trim()) ? '' : 'Enter the 6-digit code from your Gmail.'
       },
       message: {
         el: document.getElementById('message'),
@@ -1137,75 +1131,9 @@
       return !msg;
     }
 
-    function resetEmailVerification() {
-      verifiedEmailForCode = '';
-      if (codeGroup) codeGroup.hidden = true;
-      if (verifyCodeInput) verifyCodeInput.value = '';
-      if (fields.code.error) fields.code.error.textContent = '';
-      if (verifyCodeInput) verifyCodeInput.classList.remove('error');
-      if (emailVerifyStatus) {
-        emailVerifyStatus.hidden = true;
-        emailVerifyStatus.textContent = '';
-        emailVerifyStatus.classList.remove('is-verified');
-      }
-    }
-
-    if (!CONTACT_CONFIG.appsScriptUrl && emailVerifyStatus) {
-      emailVerifyStatus.hidden = false;
-      emailVerifyStatus.textContent = 'Contact backend not connected yet. Add your Google Apps Script URL in script.js.';
-    }
-
-    fields.email.el.addEventListener('input', () => {
-      const normalized = normalizeGmail(fields.email.el.value);
-      if (verifiedEmailForCode && normalized !== verifiedEmailForCode) {
-        resetEmailVerification();
-      }
-    });
-
     Object.keys(fields).forEach(key => {
-      if (fields[key].el) {
-        fields[key].el.addEventListener('blur', () => validateField(key));
-      }
+      fields[key].el.addEventListener('blur', () => validateField(key));
     });
-
-    if (sendCodeBtn) {
-      sendCodeBtn.addEventListener('click', async () => {
-        if (formError) formError.hidden = true;
-        if (!validateField('email')) {
-          if (SciFiAudio.enabled) SciFiAudio.playError();
-          return;
-        }
-
-        const email = normalizeGmail(fields.email.el.value);
-        sendCodeBtn.disabled = true;
-        sendCodeBtn.textContent = 'Sending...';
-
-        if (emailVerifyStatus) {
-          emailVerifyStatus.hidden = false;
-          emailVerifyStatus.textContent = 'Sending verification code...';
-          emailVerifyStatus.classList.remove('is-verified');
-        }
-
-        try {
-          const data = await postToContactBackend({ action: 'sendCode', email });
-          verifiedEmailForCode = email;
-          if (codeGroup) codeGroup.hidden = false;
-          if (verifyCodeInput) verifyCodeInput.focus();
-          if (emailVerifyStatus) {
-            emailVerifyStatus.textContent = data.message || `Code sent to ${email}`;
-            emailVerifyStatus.classList.add('is-verified');
-          }
-        } catch (err) {
-          resetEmailVerification();
-          fields.email.error.textContent = err.message || 'Could not send verification code.';
-          fields.email.el.classList.add('error');
-          if (SciFiAudio.enabled) SciFiAudio.playError();
-        } finally {
-          sendCodeBtn.disabled = false;
-          sendCodeBtn.textContent = 'Send Code';
-        }
-      });
-    }
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
@@ -1213,21 +1141,16 @@
       if (formError) formError.hidden = true;
       if (formSuccess) formSuccess.hidden = true;
 
-      const valid = validateField('name') && validateField('email') && validateField('message');
+      const valid = Object.keys(fields).every(validateField);
       if (!valid) {
         if (SciFiAudio.enabled) SciFiAudio.playError();
         return;
       }
 
       const email = normalizeGmail(fields.email.el.value);
-      if (!verifiedEmailForCode || email !== verifiedEmailForCode) {
-        fields.email.error.textContent = 'Send and confirm the verification code for your Gmail first.';
+      if (!email) {
+        fields.email.error.textContent = 'Use a valid Gmail address (@gmail.com).';
         fields.email.el.classList.add('error');
-        if (SciFiAudio.enabled) SciFiAudio.playError();
-        return;
-      }
-
-      if (!validateField('code')) {
         if (SciFiAudio.enabled) SciFiAudio.playError();
         return;
       }
@@ -1238,21 +1161,16 @@
       }
 
       try {
-        await postToContactBackend({
-          action: 'submit',
+        await sendContactEmail({
           name: fields.name.el.value.trim(),
           email,
-          code: fields.code.el.value.trim(),
           message: fields.message.el.value.trim()
         });
 
         if (SciFiAudio.enabled) SciFiAudio.playTransmit();
         if (formSuccess) formSuccess.hidden = false;
         form.reset();
-        Object.values(fields).forEach(f => {
-          if (f.el) f.el.classList.remove('error');
-        });
-        resetEmailVerification();
+        Object.values(fields).forEach(f => f.el.classList.remove('error'));
         showTransmissionSuccess();
         window.setTimeout(() => {
           if (formSuccess) formSuccess.hidden = true;

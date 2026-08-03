@@ -299,18 +299,9 @@
             </div>
             <div class="form-group">
               <label for="email">Gmail</label>
-              <p class="form-hint">Use a real Gmail address. We will send a verification code to confirm it.</p>
-              <div class="email-verify-row">
-                <input type="email" id="email" name="email" placeholder="you@gmail.com" required autocomplete="email">
-                <button type="button" class="btn btn-ghost" id="send-code-btn">Send Code</button>
-              </div>
+              <p class="form-hint">Use your Gmail address so replies reach the right inbox.</p>
+              <input type="email" id="email" name="email" placeholder="you@gmail.com" required autocomplete="email">
               <span class="error-msg" id="email-error"></span>
-              <p class="google-verify-status" id="email-verify-status" hidden></p>
-            </div>
-            <div class="form-group" id="code-group" hidden>
-              <label for="verify-code">Verification Code</label>
-              <input type="text" id="verify-code" name="verify-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code from Gmail" maxlength="6">
-              <span class="error-msg" id="code-error"></span>
             </div>
             <div class="form-group">
               <label for="message">Message</label>
