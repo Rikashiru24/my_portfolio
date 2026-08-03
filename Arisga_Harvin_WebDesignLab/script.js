@@ -786,7 +786,7 @@
 
       const ambientGain = this.ctx.createGain();
       ambientGain.gain.setValueAtTime(0.001, t);
-      ambientGain.gain.linearRampToValueAtTime(0.04, t + 2);
+      ambientGain.gain.linearRampToValueAtTime(0.018, t + 2);
       ambientGain.connect(this.master);
 
       [55, 82.5, 110].forEach((freq, i) => {
@@ -802,9 +802,9 @@
       });
 
       const lfo = this.ctx.createOscillator();
-      lfo.frequency.value = 0.15;
+      lfo.frequency.value = 0.08;
       const lfoGain = this.ctx.createGain();
-      lfoGain.gain.value = 8;
+      lfoGain.gain.value = 3;
       lfo.connect(lfoGain);
       lfoGain.connect(this.ambientNodes[0].frequency);
       lfo.start();
@@ -920,6 +920,8 @@
       if (next) {
         await enableAudio(true);
       } else {
+        achievementSoundQueue.length = 0;
+        achievementSoundPlaying = false;
         SciFiAudio.setEnabled(false);
       }
     });
@@ -1136,6 +1138,16 @@
   const SECTION_ORDER = ['hero', 'about', 'services', 'projects', 'contact'];
   const toastById = new Map();
   const toastStackOrder = [];
+  const userDismissed = new Set();
+  const achievementSoundQueue = [];
+  let achievementSoundPlaying = false;
+  let dismissSoundPending = false;
+  let syncAchievementsScheduled = false;
+  let pushStaggerGen = 0;
+  let lastMissingKey = '';
+  const ACHIEVEMENT_SOUND_GAP = 380;
+  const TOAST_STAGGER_MS = 340;
+  const SOUND_LEAD_MS = 220;
   let lastScrollY = window.scrollY;
   let scrollAchievementsReady = false;
   const SCROLL_ACTIVATE = 48;
@@ -1175,11 +1187,50 @@
     }
   }
 
-  async function playDismissSound() {
+  function queueAchievementSound(achievement) {
+    if (achievementSoundQueue.some((a) => a.id === achievement.id)) return;
+
+    if (!achievementSoundPlaying) {
+      achievementSoundPlaying = true;
+      playAchievementSound(achievement).finally(() => {
+        setTimeout(() => {
+          achievementSoundPlaying = false;
+          drainAchievementSoundQueue();
+        }, ACHIEVEMENT_SOUND_GAP);
+      });
+      return;
+    }
+
+    if (achievementSoundQueue.length >= 6) return;
+    achievementSoundQueue.push(achievement);
+  }
+
+  function drainAchievementSoundQueue() {
+    if (achievementSoundPlaying || achievementSoundQueue.length === 0) return;
+    const achievement = achievementSoundQueue.shift();
+    achievementSoundPlaying = true;
+    playAchievementSound(achievement).finally(() => {
+      setTimeout(() => {
+        achievementSoundPlaying = false;
+        drainAchievementSoundQueue();
+      }, ACHIEVEMENT_SOUND_GAP);
+    });
+  }
+
+  async function playDismissSoundOnce() {
     if (!SciFiAudio.enabled) return;
     const ready = await ensureAudioRunning();
     if (!ready) return;
     SciFiAudio.playToastDismiss();
+  }
+
+  function queueDismissSound() {
+    if (dismissSoundPending) return;
+    dismissSoundPending = true;
+    setTimeout(() => {
+      dismissSoundPending = false;
+      playDismissSoundOnce();
+    }, 80);
   }
 
   function markUnlocked(id) {
@@ -1213,12 +1264,102 @@
         <p class="achievement-title">${achievement.title}</p>
         <p class="achievement-desc">${achievement.desc}</p>
       </div>
+      <button type="button" class="achievement-dismiss" aria-label="Dismiss achievement">×</button>
     `;
+    bindToastInteractions(toast, achievement.id);
     return toast;
   }
 
-  function pushToast(achievement, withSound = true) {
+  function dismissToast(id, withSound = false) {
+    const idx = toastStackOrder.indexOf(id);
+    const toast = toastById.get(id);
+    if (!toast) return;
+
+    if (idx !== -1) {
+      toastStackOrder.splice(idx, 1);
+      userDismissed.add(id);
+    }
+
+    const achievement = getAchievementById(id);
+
+    const hideToast = () => {
+      toastById.delete(id);
+      toast.classList.remove('is-visible', 'is-dragging');
+      toast.classList.add('leaving');
+      toast.style.transform = '';
+      toast.style.opacity = '';
+      setTimeout(() => toast.remove(), 450);
+    };
+
+    if (withSound && achievement) {
+      queueAchievementSound(achievement);
+      setTimeout(hideToast, SOUND_LEAD_MS);
+    } else {
+      hideToast();
+      if (withSound) queueDismissSound();
+    }
+  }
+
+  function bindToastInteractions(toast, achievementId) {
+    const closeBtn = toast.querySelector('.achievement-dismiss');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dismissToast(achievementId, true);
+      });
+    }
+
+    let startX = 0;
+    let currentX = 0;
+    let dragging = false;
+    let pointerId = null;
+
+    const onPointerDown = (e) => {
+      if (e.target.closest('.achievement-dismiss')) return;
+      dragging = true;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      currentX = 0;
+      toast.classList.add('is-dragging');
+      if (toast.setPointerCapture) toast.setPointerCapture(e.pointerId);
+    };
+
+    const onPointerMove = (e) => {
+      if (!dragging || e.pointerId !== pointerId) return;
+      currentX = e.clientX - startX;
+      if (currentX > 0) {
+        toast.style.transform = `translateX(${currentX}px)`;
+        toast.style.opacity = String(Math.max(0.3, 1 - currentX / 200));
+      }
+    };
+
+    const onPointerUp = (e) => {
+      if (!dragging || e.pointerId !== pointerId) return;
+      dragging = false;
+      pointerId = null;
+      toast.classList.remove('is-dragging');
+      if (toast.releasePointerCapture) {
+        try { toast.releasePointerCapture(e.pointerId); } catch (_) { /* released */ }
+      }
+
+      if (currentX > 72) {
+        dismissToast(achievementId, true);
+      } else {
+        toast.style.transform = '';
+        toast.style.opacity = '';
+      }
+      currentX = 0;
+    };
+
+    toast.addEventListener('pointerdown', onPointerDown);
+    toast.addEventListener('pointermove', onPointerMove);
+    toast.addEventListener('pointerup', onPointerUp);
+    toast.addEventListener('pointercancel', onPointerUp);
+  }
+
+  function pushToast(achievement, withSound = true, soundFirst = false) {
     if (!achievementStack) return;
+    if (userDismissed.has(achievement.id)) return;
 
     const existing = toastById.get(achievement.id);
     if (existing && !existing.classList.contains('leaving')) return;
@@ -1230,26 +1371,48 @@
     toastById.set(achievement.id, toast);
     toastStackOrder.push(achievement.id);
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => toast.classList.add('is-visible'));
-    });
+    const revealToast = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => toast.classList.add('is-visible'));
+      });
+    };
 
-    if (withSound) playAchievementSound(achievement);
+    if (withSound && soundFirst) {
+      queueAchievementSound(achievement);
+      setTimeout(revealToast, SOUND_LEAD_MS);
+    } else if (withSound) {
+      revealToast();
+      queueAchievementSound(achievement);
+    } else {
+      revealToast();
+    }
   }
 
-  function popToast(withSound = true) {
+  function popToast(withSound = true, soundFirst = false) {
     if (toastStackOrder.length === 0) return;
     const id = toastStackOrder.pop();
     const toast = toastById.get(id);
     if (!toast) return;
 
-    toastById.delete(id);
-    toast.classList.remove('is-visible');
-    toast.classList.add('leaving');
+    const achievement = getAchievementById(id);
 
-    if (withSound) playDismissSound();
+    const hideToast = () => {
+      toastById.delete(id);
+      userDismissed.delete(id);
+      toast.classList.remove('is-visible', 'is-dragging');
+      toast.classList.add('leaving');
+      toast.style.transform = '';
+      toast.style.opacity = '';
+      setTimeout(() => toast.remove(), 450);
+    };
 
-    setTimeout(() => toast.remove(), 450);
+    if (withSound && soundFirst && achievement) {
+      queueAchievementSound(achievement);
+      setTimeout(hideToast, SOUND_LEAD_MS);
+    } else {
+      hideToast();
+      if (withSound) queueDismissSound();
+    }
   }
 
   function getTargetStackIds(scrollDir) {
@@ -1294,44 +1457,73 @@
 
     const targetIds = getTargetStackIds(scrollDir === 'none' ? 'down' : scrollDir);
 
-    while (toastStackOrder.length > targetIds.length) {
-      popToast(true);
-    }
+    userDismissed.forEach((id) => {
+      if (!targetIds.includes(id)) userDismissed.delete(id);
+    });
 
-    while (
-      toastStackOrder.length > 0 &&
-      toastStackOrder[toastStackOrder.length - 1] !== targetIds[toastStackOrder.length - 1]
-    ) {
-      popToast(true);
-    }
+    const needsPop =
+      toastStackOrder.length > targetIds.length ||
+      (toastStackOrder.length > 0 &&
+        toastStackOrder[toastStackOrder.length - 1] !== targetIds[toastStackOrder.length - 1]);
 
-    for (let i = 0; i < targetIds.length; i++) {
-      const id = targetIds[i];
-      if (i >= toastStackOrder.length) {
-        const achievement = getAchievementById(id);
-        if (achievement) pushToast(achievement, true);
+    if (needsPop) {
+      if (scrollDir === 'up') {
+        popToast(true, true);
+      } else {
+        while (toastStackOrder.length > targetIds.length) popToast(false);
+        while (
+          toastStackOrder.length > 0 &&
+          toastStackOrder[toastStackOrder.length - 1] !== targetIds[toastStackOrder.length - 1]
+        ) {
+          popToast(false);
+        }
       }
     }
+
+    if (scrollDir === 'up') return;
+
+    const missing = [];
+    for (let i = 0; i < targetIds.length; i++) {
+      const id = targetIds[i];
+      if (userDismissed.has(id)) continue;
+      if (i >= toastStackOrder.length) missing.push(id);
+    }
+
+    if (missing.length === 0) return;
+
+    const missingKey = missing.join(',');
+    if (missingKey !== lastMissingKey) {
+      pushStaggerGen += 1;
+      lastMissingKey = missingKey;
+    }
+    const gen = pushStaggerGen;
+
+    missing.forEach((id, index) => {
+      setTimeout(() => {
+        if (gen !== pushStaggerGen) return;
+        if (userDismissed.has(id)) return;
+        const latestTarget = getTargetStackIds('down');
+        if (!latestTarget.includes(id)) return;
+        const achievement = getAchievementById(id);
+        if (!achievement) return;
+        pushToast(achievement, true, true);
+      }, index * TOAST_STAGGER_MS);
+    });
+  }
+
+  function scheduleSyncScrollAchievements() {
+    if (syncAchievementsScheduled) return;
+    syncAchievementsScheduled = true;
+    requestAnimationFrame(() => {
+      syncAchievementsScheduled = false;
+      syncScrollAchievements();
+    });
   }
 
   function showOneTimeAchievement(achievement) {
     if (unlocked.has(achievement.id)) return;
-    markUnlocked(achievement.id);
     if (!achievementStack) return;
-
-    const toast = buildToastElement(achievement);
-    achievementStack.appendChild(toast);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => toast.classList.add('is-visible'));
-    });
-
-    playAchievementSound(achievement);
-
-    setTimeout(() => {
-      toast.classList.remove('is-visible');
-      toast.classList.add('leaving');
-      setTimeout(() => toast.remove(), 450);
-    }, 6000);
+    pushToast(achievement, true, true);
   }
 
   function startScrollAchievements() {
@@ -1348,7 +1540,7 @@
     if (hudProgress) hudProgress.textContent = `${progress}%`;
     if (hudXpFill) hudXpFill.style.width = `${progress}%`;
     if (hudXpBar) hudXpBar.setAttribute('aria-valuenow', String(progress));
-    syncScrollAchievements();
+    scheduleSyncScrollAchievements();
   }
 
   function updateSessionTimer() {

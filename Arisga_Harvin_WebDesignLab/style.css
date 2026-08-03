@@ -2001,7 +2001,7 @@ body.loaded .mission-hud {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.9rem 1.1rem;
+  padding: 0.9rem 2.4rem 0.9rem 1.1rem;
   background: rgba(3, 0, 20, 0.98);
   border: 1px solid var(--magenta);
   box-shadow: var(--glow-mag), inset 0 0 20px rgba(255, 0, 170, 0.08);
@@ -2009,6 +2009,44 @@ body.loaded .mission-hud {
   transform: translateX(110%);
   transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
+  pointer-events: auto;
+  position: relative;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.achievement-toast.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.achievement-dismiss {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 1.65rem;
+  height: 1.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 0, 170, 0.35);
+  border-radius: 50%;
+  background: rgba(255, 0, 170, 0.12);
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.achievement-dismiss:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: var(--cyan-dim);
+  transform: scale(1.08);
 }
 
 .achievement-toast.is-visible {
