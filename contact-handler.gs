@@ -15,6 +15,13 @@ const RECIPIENT_EMAIL = 'harvinarisga@gmail.com';
 const CACHE_PREFIX = 'portfolio_verify_';
 const CODE_TTL_SECONDS = 600;
 
+function doGet() {
+  return jsonResponse({
+    success: true,
+    message: 'Portfolio contact backend is online.'
+  });
+}
+
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);

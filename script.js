@@ -5,7 +5,7 @@
 
   const CONTACT_CONFIG = {
     recipientEmail: 'harvinarisga@gmail.com',
-    appsScriptUrl: ''
+    appsScriptUrl: 'https://script.google.com/macros/s/AKfycbxPQAAdMxCFDKWBREnEKQASmzmICezCR9qp3WyxYFSlYrNbrTFS6mUPkkp-Db2wkv_w/exec'
   };
 
   /* --- Intro Splash --- */
@@ -1091,6 +1091,9 @@
     }
 
     if (!response.ok || !data.success) {
+      if (response.status === 403) {
+        throw new Error('Contact backend is not public yet. In Apps Script, redeploy the web app with Who has access set to Anyone.');
+      }
       throw new Error(data.error || 'Request failed. Please try again.');
     }
 
