@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Harvin Arisga — Personal Portfolio. Researcher and Backend Developer specializing in Python, Flask, AWS, and secure web systems.">
+  <title>Harvin Arisga | Personal Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <!-- Intro Splash — tap to enter unlocks audio (browser requirement) -->
+  <div class="intro-splash" id="intro-splash" role="dialog" aria-modal="true" aria-label="Welcome">
+    <div class="intro-content">
+      <p class="intro-label">INITIALIZING COMBAT PROFILE</p>
+      <h2 class="intro-name">HARVIN ARISGA</h2>
+      <div class="intro-bar"><span class="intro-bar-fill"></span></div>
+      <p class="intro-status">PLAYER LOADED — ENTER THE ARENA</p>
+      <button type="button" class="intro-enter-btn" id="intro-enter-btn" hidden>
+        <span class="intro-enter-glow"></span>
+        ENTER THE ARENA
+      </button>
+      <p class="intro-tap-hint" id="intro-tap-hint" hidden>Tap anywhere · Audio enabled</p>
+    </div>
+  </div>
+
+  <!-- Rank ticker -->
+  <div class="arena-ticker" aria-hidden="true">
+    <div class="ticker-track">
+      <span>⚡ S-RANK DEVELOPER</span><span>◆ PYTHON FLASK AWS</span><span>◆ UNITY GODOT C#</span>
+      <span>⚡ ZERO LIMITS</span><span>◆ JWT RBAC SECURED</span><span>◆ BUILT TO COMPETE</span>
+      <span>⚡ S-RANK DEVELOPER</span><span>◆ PYTHON FLASK AWS</span><span>◆ UNITY GODOT C#</span>
+      <span>⚡ ZERO LIMITS</span><span>◆ JWT RBAC SECURED</span><span>◆ BUILT TO COMPETE</span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner container">
+      <a href="#home" class="logo">
+        <img src="images/logo.svg" alt="Harvin Arisga logo" class="logo-img">
+        <span class="logo-text">HARVIN<span class="logo-accent"> ARISGA</span></span>
+      </a>
+
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+        <span class="hamburger"></span>
+      </button>
+
+      <div class="header-controls">
+        <span class="rank-badge">S-RANK</span>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light and dark mode">
+          <span class="theme-icon sun" aria-hidden="true">☀</span>
+          <span class="theme-icon moon" aria-hidden="true">☾</span>
+        </button>
+        <button class="audio-toggle" id="audio-toggle" aria-label="Toggle sound effects" aria-pressed="true" title="Audio interface active">
+          <span class="audio-icon audio-off" aria-hidden="true">🔇</span>
+          <span class="audio-icon audio-on" aria-hidden="true">🔊</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="main-nav" id="main-nav" aria-label="Main navigation">
+    <ul class="nav-list">
+      <li><a href="#home" class="nav-link active" aria-label="Home"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg></span><span class="nav-text">Home</span></a></li>
+      <li><a href="#about" class="nav-link" aria-label="About"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="nav-text">About</span></a></li>
+      <li><a href="#services" class="nav-link" aria-label="Services"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span><span class="nav-text">Services</span></a></li>
+      <li><a href="#projects" class="nav-link" aria-label="Projects"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span><span class="nav-text">Projects</span></a></li>
+      <li><a href="#contact" class="nav-link" aria-label="Contact"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m4 4 8 8 8-8"/></svg></span><span class="nav-text">Contact</span></a></li>
+    </ul>
+  </nav>
+
+  <div class="nav-backdrop" id="nav-backdrop" hidden aria-hidden="true"></div>
+
+  <main>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-overlay"></div>
+      <div class="hero-grid container">
+        <div class="hero-text">
+          <p class="hero-tagline"><span class="blink">▸</span> <span id="typewriter">RIVAL DETECTED — PREPARE TO BE AMAZED</span></p>
+          <div class="hero-badge-row">
+            <span class="hero-rank">S-RANK</span>
+            <span class="hero-class">FULL-STACK OPERATOR</span>
+          </div>
+          <h1 class="hero-title glitch" data-text="HARVIN ARISGA">HARVIN ARISGA</h1>
+          <p class="hero-role">Researcher <span class="sep">|</span> Backend Dev <span class="sep">|</span> Game Dev <span class="sep">|</span> <strong class="hero-highlight">UNSTOPPABLE</strong></p>
+          <p class="hero-desc">I don't just build apps — I engineer weapons-grade systems. Flask APIs, Unity worlds, AWS deployments. Fast. Secure. Legendary.</p>
+          <div class="hero-actions">
+            <a href="#contact" class="btn btn-primary btn-pulse">Challenge Accepted — Hire Me</a>
+            <a href="#services" class="btn btn-ghost">View Arsenal</a>
+          </div>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-value" data-count="20">0</span><span class="stat-plus">+</span>
+              <span class="stat-label">Tech Skills</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" data-count="99">0</span><span class="stat-plus">%</span>
+              <span class="stat-label">Drive</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">∞</span>
+              <span class="stat-label">Potential</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="power-ring"></div>
+          <div class="holo-ring holo-ring-1"></div>
+          <div class="holo-ring holo-ring-2"></div>
+          <div class="holo-ring holo-ring-3"></div>
+          <div class="portrait-wrap">
+            <div class="portrait-frame" id="portrait-tilt" role="button" tabindex="0" aria-label="Click with mouse to play all portrait reactions">
+              <div class="level-badge">LV. 99</div>
+              <span class="portrait-tap-hint" aria-hidden="true">CLICK ME</span>
+              <div class="portrait-glow"></div>
+              <div class="portrait-stack" id="portrait-stack">
+                <img src="images/reaction-neutral.png" alt="Harvin Arisga — Researcher and Developer" class="portrait-img" id="portrait-img">
+              </div>
+              <p class="portrait-reaction-label" id="portrait-reaction-label">◈ READY</p>
+              <div class="portrait-scan"></div>
+              <div class="portrait-frame-border"></div>
+            </div>
+            <p class="portrait-instruction" id="portrait-instruction">
+              <span class="instruction-pointer" aria-hidden="true">👆</span>
+              <span id="portrait-instruction-text">
+                <span class="instruction-full"><strong>Hover</strong> to smile · <strong>Click</strong> for the next reaction!</span>
+                <span class="instruction-short"><strong>Tap</strong> for the next reaction!</span>
+              </span>
+            </p>
+          </div>
+          <div class="floating-tag tag-1">PYTHON</div>
+          <div class="floating-tag tag-2">UNITY</div>
+          <div class="floating-tag tag-3">AWS</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about section" id="about">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-code">// MODULE_01</span>
+          <h2 class="section-title">About the Champion</h2>
+          <div class="title-line"></div>
+          <p class="section-subtitle">Forged in code. Built to dominate.</p>
+        </div>
+
+        <div class="about-grid">
+          <div class="about-panel">
+            <div class="panel-corner tl"></div>
+            <div class="panel-corner tr"></div>
+            <div class="panel-corner bl"></div>
+            <div class="panel-corner br"></div>
+            <p>I am <strong>Harvin Arisga</strong>, a researcher and developer from Villa Maria Linda, Pogo, Alaminos City. I build data-driven web apps with Python, Flask, and MySQL, and create games using C#, Unity, and Godot.</p>
+            <p>I follow strong coding principles, design databases in Lucidchart, and deploy production systems using AWS, Cloudflare, and modern DevOps tools.</p>
+          </div>
+
+          <div class="about-panel">
+            <div class="panel-corner tl"></div>
+            <div class="panel-corner tr"></div>
+            <div class="panel-corner bl"></div>
+            <div class="panel-corner br"></div>
+            <p>My work spans JWT authentication, RBAC permission systems, game logic in Unity and Godot, API testing with Postman, and performance optimization through caching strategies.</p>
+            <p>I am passionate about clean architecture, immersive gameplay, secure backends, and turning complex ideas into reliable software.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services section" id="services">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-code">// MODULE_02</span>
+          <h2 class="section-title">Combat Arsenal</h2>
+          <div class="title-line"></div>
+          <p class="section-subtitle">Services engineered to outclass the competition</p>
+        </div>
+
+        <div class="services-grid">
+          <article class="service-card" data-rank="S">
+            <span class="card-rank">S</span>
+            <div class="service-icon">
+              <img src="images/icon-backend.svg" alt="">
+            </div>
+            <h3>Backend Development</h3>
+            <p>RESTful APIs and web applications built with Python, Flask, JWT auth, RBAC, permission slugs, and clean coding principles.</p>
+          </article>
+
+          <article class="service-card" data-rank="A">
+            <span class="card-rank">A</span>
+            <div class="service-icon">
+              <img src="images/icon-database.svg" alt="">
+            </div>
+            <h3>Database Engineering</h3>
+            <p>MySQL database design, SQLAlchemy ORM, schema modeling in Lucidchart and MySQL Workbench, plus data analysis with pandas and numpy.</p>
+          </article>
+
+          <article class="service-card" data-rank="S">
+            <span class="card-rank">S</span>
+            <div class="service-icon">
+              <img src="images/icon-cloud.svg" alt="">
+            </div>
+            <h3>Cloud &amp; Deployment</h3>
+            <p>AWS hosting, Cloudflare CDN and security, ngrok tunneling, Postman API testing, Resend email, and caching for performance.</p>
+          </article>
+
+          <article class="service-card" data-rank="S">
+            <span class="card-rank">S</span>
+            <div class="service-icon">
+              <img src="images/icon-game.svg" alt="">
+            </div>
+            <h3>Game Development</h3>
+            <p>Interactive games and prototypes built with C#, Unity, and Godot — from mechanics and UI to polished playable experiences.</p>
+          </article>
+        </div>
+
+        <div class="tech-stack">
+          <h3 class="tech-title">Tech Stack</h3>
+          <div class="tech-tags">
+            <span>Python</span><span>Flask</span><span>C#</span><span>Unity</span><span>Godot</span>
+            <span>MySQL</span><span>SQLAlchemy</span><span>AWS</span><span>Cloudflare</span>
+            <span>JWT</span><span>RBAC</span><span>Postman</span><span>ngrok</span>
+            <span>Resend</span><span>Caching</span><span>pandas</span><span>numpy</span><span>Lucidchart</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="projects section" id="projects">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-code">// MODULE_03</span>
+          <h2 class="section-title">Deployed Missions</h2>
+          <div class="title-line"></div>
+          <p class="section-subtitle">Live projects built and shipped to production</p>
+        </div>
+
+        <div class="projects-grid">
+          <article class="project-card">
+            <div class="project-icon">
+              <img src="images/icon-project-academy.svg" alt="">
+            </div>
+            <span class="project-status live">LIVE</span>
+            <h3>GWC Academy</h3>
+            <p>Official web platform for Golden West Colleges, Inc. — featuring news, events, community stories, and testimonials for the GWC global arena.</p>
+            <div class="project-tags">
+              <span>Web Platform</span><span>Education</span><span>GWC</span>
+            </div>
+            <a href="https://www.gwc.academy/" target="_blank" rel="noopener noreferrer" class="btn btn-ghost project-link">Visit Site →</a>
+          </article>
+
+          <article class="project-card">
+            <div class="project-icon">
+              <img src="images/icon-project-schedule.svg" alt="">
+            </div>
+            <span class="project-status live">LIVE</span>
+            <h3>GWC Class Scheduling</h3>
+            <p>Academic timetable system that turns rooms, faculty, and sections into conflict-free weekly schedules — with drag-to-schedule and instant publishing across colleges.</p>
+            <div class="project-tags">
+              <span>Flask</span><span>MySQL</span><span>Vercel</span><span>RBAC</span>
+            </div>
+            <a href="https://class-scheduling-self.vercel.app/" target="_blank" rel="noopener noreferrer" class="btn btn-ghost project-link">Visit Site →</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact section" id="contact">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-code">// MODULE_04</span>
+          <h2 class="section-title">Challenge Me</h2>
+          <div class="title-line"></div>
+          <p class="section-subtitle">Send a transmission — let's build something legendary</p>
+        </div>
+
+        <div class="contact-grid">
+          <form class="contact-form" id="contact-form" novalidate>
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input type="text" id="name" name="name" placeholder="Your full name" required>
+              <span class="error-msg" id="name-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" placeholder="you@example.com" required>
+              <span class="error-msg" id="email-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="message">Message</label>
+              <textarea id="message" name="message" rows="5" placeholder="How can I help you?" required></textarea>
+              <span class="error-msg" id="message-error"></span>
+            </div>
+            <button type="submit" class="btn btn-primary btn-pulse">Launch Transmission</button>
+            <p class="form-success" id="form-success" hidden>Thank you! Your message has been sent.</p>
+          </form>
+
+          <div class="contact-panel">
+            <div class="panel-corner tl"></div>
+            <div class="panel-corner tr"></div>
+            <div class="panel-corner bl"></div>
+            <div class="panel-corner br"></div>
+            <h3>Get In Touch</h3>
+            <ul class="contact-list">
+              <li><span class="contact-key">Address</span><span class="contact-val">Villa Maria Linda, Pogo, Alaminos City</span></li>
+              <li><span class="contact-key">Email</span><span class="contact-val">harvinarisga2017@gmail.com</span></li>
+              <li><span class="contact-key">Phone</span><span class="contact-val"><a href="tel:+639072925071">+63 907 292 5071</a></span></li>
+              <li><span class="contact-key">Role</span><span class="contact-val">Researcher / Developer</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="map-section">
+          <h3 class="map-title">Find Me</h3>
+          <div class="map-wrapper">
+            <iframe
+              src="https://www.google.com/maps?q=Villa+Maria+Linda,+Pogo,+Alaminos+City,+Pangasinan,+Philippines&hl=en&z=16&output=embed"
+              title="Harvin Arisga location on Google Maps"
+              allowfullscreen=""
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.svg" alt="Harvin Arisga logo" class="footer-logo">
+        <p>Harvin Arisga — <strong class="footer-highlight">Built Different. Built to Win.</strong></p>
+      </div>
+      <div class="footer-contact">
+        <h3>Contact</h3>
+        <p>Villa Maria Linda, Pogo, Alaminos City, Pangasinan</p>
+        <p><a href="mailto:harvinarisga2017@gmail.com">harvinarisga2017@gmail.com</a></p>
+        <p><a href="tel:+639072925071">+63 907 292 5071</a></p>
+      </div>
+      <div class="footer-social">
+        <h3>Follow Me</h3>
+        <div class="social-links">
+          <a href="https://www.facebook.com/harvin.arisga.9" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="social-link">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          </a>
+          <a href="https://www.instagram.com/magwayon" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="social-link">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.5"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Harvin Arisga. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+  <div class="audio-toast" id="audio-toast" role="status" aria-live="polite">
+    <span class="toast-pulse"></span>
+    Audio interface ready — sound enabled
+  </div>
+
+  <!-- Mission HUD -->
+  <aside class="mission-hud" id="mission-hud" aria-label="Mission progress">
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+    <p class="hud-label">◈ MISSION HUD</p>
+    <div class="hud-row">
+      <span class="hud-key">PROGRESS</span>
+      <span class="hud-val" id="hud-progress">0%</span>
+    </div>
+    <div class="hud-xp-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="hud-xp-bar">
+      <span class="hud-xp-fill" id="hud-xp-fill"></span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-key">SESSION</span>
+      <span class="hud-val" id="hud-session">00:00</span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-key">RANK</span>
+      <span class="hud-val hud-rank" id="hud-rank">S</span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-key">ACHV</span>
+      <span class="hud-val" id="hud-achievements">0/7</span>
+    </div>
+  </aside>
+
+  <!-- Achievement toasts -->
+  <div class="achievement-stack" id="achievement-stack" aria-live="polite"></div>
+
+  <!-- Transmission success overlay -->
+  <div class="transmission-overlay" id="transmission-overlay" hidden aria-hidden="true">
+    <div class="transmission-content">
+      <p class="transmission-label">◈ SIGNAL CONFIRMED</p>
+      <h2 class="transmission-title">TRANSMISSION SENT</h2>
+      <p class="transmission-sub">Your message has entered the arena network.</p>
+      <div class="transmission-bar"><span class="transmission-bar-fill"></span></div>
+    </div>
+  </div>
+
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+  <!-- Scroll thought reactions -->
+  <aside class="scroll-thoughts" id="scroll-thoughts" aria-live="polite" aria-hidden="true" hidden>
+    <div class="thought-bubble" id="thought-bubble">
+      <p class="thought-text" id="thought-text"></p>
+    </div>
+    <div class="thought-trail" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+    <img src="images/reaction-neutral.png" alt="" class="thought-portrait" id="thought-portrait" width="88" height="99">
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>
