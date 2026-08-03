@@ -307,7 +307,7 @@
     }
 
     const now = Date.now();
-    if (SciFiAudio.enabled && now - lastThoughtSound > 600) {
+    if (SciFiAudio.enabled && now - lastThoughtSound > 600 && now >= achievementSoundLockUntil) {
       ensureAudioRunning().then((ready) => {
         if (ready) SciFiAudio.playPortraitReaction(reaction.id);
       });
@@ -1321,9 +1321,12 @@
   const achievementSoundQueue = [];
   let achievementSoundPlaying = false;
   let dismissSoundPending = false;
-  const ACHIEVEMENT_SOUND_GAP = 380;
+  let achievementSoundLockUntil = 0;
+  const ACHIEVEMENT_SOUND_GAP = 480;
   const SOUND_LEAD_MS = 220;
   const COVER_DISMISS_MS = 360;
+  const TOAST_ENTER_MS = 380;
+  const SECTION_UNLOCK_DELAY_MS = 200;
   let scrollAchievementsReady = false;
   let activeDisplayedId = null;
   let coverDismissTimer = null;
@@ -1377,7 +1380,7 @@
     return ids;
   }
 
-  function dismissToastToSide(id) {
+  function dismissToastToSide(id, playSound = false) {
     const idx = toastStackOrder.indexOf(id);
     const toast = toastById.get(id);
     if (!toast) return;
@@ -1389,6 +1392,7 @@
     toast.style.transform = '';
     toast.style.opacity = '';
     toast.classList.add('leaving');
+    if (playSound) queueDismissSound(true);
     window.setTimeout(() => toast.remove(), 420);
 
     if (activeDisplayedId === id) activeDisplayedId = null;
@@ -1441,6 +1445,8 @@
       }
     }
 
+    queueAchievementSound(achievement);
+
     if (oldId && oldId !== activeId && toastById.has(oldId)) {
       const oldToast = toastById.get(oldId);
       oldToast.classList.remove('achievement-toast--cover');
@@ -1448,7 +1454,7 @@
       oldToast.style.zIndex = '1';
       coverDismissTimer = window.setTimeout(() => {
         if (gen !== coverTransitionGen) return;
-        dismissToastToSide(oldId);
+        dismissToastToSide(oldId, true);
       }, COVER_DISMISS_MS);
     }
   }
@@ -1472,6 +1478,8 @@
     const ready = await ensureAudioRunning();
     if (!ready) return;
     if (achievement.type === 'scroll') {
+      SciFiAudio.playPortraitReaction('thumbs-up');
+      await new Promise((resolve) => setTimeout(resolve, SECTION_UNLOCK_DELAY_MS));
       SciFiAudio.playAchievement();
       return;
     }
@@ -1482,6 +1490,7 @@
     const reactionId = ACHIEVEMENT_SOUNDS[achievement.id];
     if (reactionId) {
       SciFiAudio.playPortraitReaction(reactionId);
+      await new Promise((resolve) => setTimeout(resolve, SECTION_UNLOCK_DELAY_MS));
       SciFiAudio.playSectionUnlock();
     } else {
       SciFiAudio.playAchievement();
@@ -1490,6 +1499,7 @@
 
   function queueAchievementSound(achievement) {
     if (achievementSoundQueue.some((a) => a.id === achievement.id)) return;
+    achievementSoundLockUntil = Date.now() + TOAST_ENTER_MS + 180;
 
     if (!achievementSoundPlaying) {
       achievementSoundPlaying = true;
@@ -1525,13 +1535,13 @@
     SciFiAudio.playToastDismiss();
   }
 
-  function queueDismissSound() {
+  function queueDismissSound(immediate = false) {
     if (dismissSoundPending) return;
     dismissSoundPending = true;
     setTimeout(() => {
       dismissSoundPending = false;
       playDismissSoundOnce();
-    }, 80);
+    }, immediate ? 0 : 80);
   }
 
   function markUnlocked(id) {
