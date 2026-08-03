@@ -44,6 +44,19 @@
 [data-theme="light"] #starfield { opacity: 0.35; }
 [data-theme="light"] .grid-overlay { opacity: 0.4; }
 [data-theme="light"] .hero-overlay { background: rgba(238, 244, 255, 0.82); }
+[data-theme="light"] .site-header {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom-color: rgba(0, 120, 180, 0.2);
+}
+[data-theme="light"] .logo {
+  color: #0a1628;
+}
+[data-theme="light"] .logo-accent {
+  color: #0078b4;
+}
+[data-theme="light"] .rank-badge {
+  color: #1a1200;
+}
 [data-theme="light"] .theme-icon.sun { display: none; }
 [data-theme="light"] .theme-icon.moon { display: block; }
 [data-theme="dark"] .theme-icon.sun,
