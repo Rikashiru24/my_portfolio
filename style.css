@@ -2074,7 +2074,7 @@ body.loaded .mission-hud {
   z-index: 9500;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0;
   pointer-events: none;
   max-width: min(320px, calc(100vw - 2rem));
 }
@@ -2088,7 +2088,7 @@ body.loaded .mission-hud {
   border: 1px solid rgba(255, 0, 170, 0.45);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   opacity: 0;
-  transform: translateX(110%);
+  transform: translateX(110%) translateY(calc(var(--stack-index, 0) * -10px));
   transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
   pointer-events: auto;
@@ -2097,6 +2097,11 @@ body.loaded .mission-hud {
   cursor: grab;
   user-select: none;
   backdrop-filter: blur(8px);
+  margin-bottom: -0.55rem;
+}
+
+.achievement-toast:last-child {
+  margin-bottom: 0;
 }
 
 .achievement-toast--compact .achievement-tag,
@@ -2149,12 +2154,12 @@ body.loaded .mission-hud {
 
 .achievement-toast.is-visible {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(0) translateY(calc(var(--stack-index, 0) * -10px));
 }
 
 .achievement-toast.leaving {
   opacity: 0;
-  transform: translateX(110%);
+  transform: translateX(110%) translateY(calc(var(--stack-index, 0) * -10px));
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
@@ -2774,12 +2779,12 @@ body.loaded .mission-hud {
   }
 
   .achievement-stack {
-    top: auto;
-    bottom: calc(5.15rem + env(safe-area-inset-bottom, 0px));
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 0.75rem);
+    bottom: auto;
     right: 0.65rem;
-    left: calc(var(--mobile-rail) + env(safe-area-inset-left, 0px) + 0.5rem);
-    max-width: none;
-    z-index: 9400;
+    left: auto;
+    max-width: min(320px, calc(100vw - var(--mobile-rail) - env(safe-area-inset-left, 0px) - 1rem));
+    z-index: 9500;
   }
 
   .achievement-toast {
