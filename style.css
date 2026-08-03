@@ -1802,16 +1802,85 @@ body.nav-open {
   min-height: 1rem;
 }
 
-.form-success {
+.form-hint {
+  margin: 0 0 0.75rem;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.form-hint-warning {
+  color: var(--gold);
+}
+
+.email-verify-row {
+  display: flex;
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.email-verify-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.email-verify-row .btn {
+  flex-shrink: 0;
+  align-self: stretch;
+  padding-inline: 0.9rem;
+  white-space: nowrap;
+}
+
+.google-verify-status {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.google-verify-status.is-verified {
+  color: var(--cyan);
+  border-color: rgba(0, 240, 255, 0.35);
+  background: var(--cyan-dim);
+}
+
+.form-group input[readonly] {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.contact-form .btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.form-success,
+.form-error {
   margin-top: 1rem;
   padding: 0.85rem;
-  background: var(--cyan-dim);
-  border: 1px solid var(--border);
-  color: var(--cyan);
   font-family: var(--font-mono);
   font-size: 0.85rem;
   text-align: center;
   border-radius: var(--radius);
+}
+
+.form-success {
+  background: var(--cyan-dim);
+  border: 1px solid var(--border);
+  color: var(--cyan);
+}
+
+.form-error {
+  background: var(--magenta-dim);
+  border: 1px solid rgba(255, 0, 170, 0.35);
+  color: var(--magenta);
 }
 
 /* --- Footer --- */
@@ -2689,37 +2758,48 @@ body.loaded .mission-hud {
   }
 
   .achievement-stack {
-    top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 11rem);
+    top: auto;
+    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
     right: 0.65rem;
-    left: auto;
-    max-width: min(220px, calc(100vw - var(--mobile-rail) - env(safe-area-inset-left, 0px) - 1rem));
-    gap: 0.4rem;
-    z-index: 9500;
+    left: calc(var(--mobile-rail) + env(safe-area-inset-left, 0px) + 0.5rem);
+    max-width: none;
+    gap: 0.35rem;
+    z-index: 9400;
   }
 
   .achievement-toast {
-    gap: 0.5rem;
-    padding: 0.55rem 1.85rem 0.55rem 0.7rem;
+    gap: 0.45rem;
+    padding: 0.5rem 1.75rem 0.5rem 0.65rem;
+    transform: translateY(120%);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), var(--glow-mag);
   }
 
-  .achievement-icon {
-    font-size: 1.05rem;
+  .achievement-toast.is-visible {
+    transform: translateY(0);
   }
 
-  .achievement-tag {
-    font-size: 0.52rem;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.1rem;
+  .achievement-toast.leaving {
+    transform: translateY(120%);
+  }
+
+  .achievement-tag,
+  .achievement-desc {
+    display: none;
+  }
+
+  .achievement-body {
+    display: flex;
+    align-items: center;
+    min-height: 1.35rem;
   }
 
   .achievement-title {
-    font-size: 0.65rem;
-    margin-bottom: 0.05rem;
+    font-size: 0.68rem;
+    margin-bottom: 0;
   }
 
-  .achievement-desc {
-    font-size: 0.62rem;
-    line-height: 1.35;
+  .achievement-icon {
+    font-size: 1rem;
   }
 
   .achievement-dismiss {
@@ -2823,28 +2903,20 @@ body.loaded .mission-hud {
     width: 100%;
   }
 
-  .achievement-stack {
-    max-width: min(195px, calc(100vw - var(--mobile-rail) - env(safe-area-inset-left, 0px) - 1rem));
+  .email-verify-row {
+    flex-direction: column;
+  }
+
+  .email-verify-row .btn {
+    width: 100%;
   }
 
   .achievement-toast {
-    padding: 0.45rem 1.65rem 0.45rem 0.6rem;
-  }
-
-  .achievement-icon {
-    font-size: 0.95rem;
-  }
-
-  .achievement-tag {
-    font-size: 0.48rem;
+    padding: 0.45rem 1.55rem 0.45rem 0.55rem;
   }
 
   .achievement-title {
-    font-size: 0.6rem;
-  }
-
-  .achievement-desc {
-    font-size: 0.58rem;
+    font-size: 0.62rem;
   }
 }
 

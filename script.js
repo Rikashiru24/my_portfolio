@@ -3,6 +3,11 @@
 (function () {
   'use strict';
 
+  const CONTACT_CONFIG = {
+    recipientEmail: 'harvinarisga@gmail.com',
+    appsScriptUrl: ''
+  };
+
   /* --- Intro Splash --- */
   const introSplash = document.getElementById('intro-splash');
   const introEnterBtn = document.getElementById('intro-enter-btn');
@@ -1049,9 +1054,57 @@
     counterObserver.observe(statEl);
   });
 
-  /* --- Contact Form Validation --- */
+  /* --- Contact Form + Gmail Verification --- */
   const form = document.getElementById('contact-form');
+  const GMAIL_PATTERN = /^[^\s@]+@(gmail|googlemail)\.com$/i;
+  let verifiedEmailForCode = '';
+
+  function normalizeGmail(email) {
+    const value = email.trim().toLowerCase();
+    if (!GMAIL_PATTERN.test(value)) return '';
+    return value.replace(/@googlemail\.com$/, '@gmail.com');
+  }
+
+  function validateGmailField(value) {
+    if (!value.trim()) return 'Enter your Gmail address.';
+    if (!GMAIL_PATTERN.test(value.trim())) return 'Use a valid Gmail address (@gmail.com).';
+    return '';
+  }
+
+  async function postToContactBackend(payload) {
+    if (!CONTACT_CONFIG.appsScriptUrl) {
+      throw new Error('Contact form is not configured yet. Add your Google Apps Script URL in script.js.');
+    }
+
+    const response = await fetch(CONTACT_CONFIG.appsScriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = {};
+    }
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Request failed. Please try again.');
+    }
+
+    return data;
+  }
+
   if (form) {
+    const submitBtn = document.getElementById('contact-submit');
+    const sendCodeBtn = document.getElementById('send-code-btn');
+    const formError = document.getElementById('form-error');
+    const formSuccess = document.getElementById('form-success');
+    const codeGroup = document.getElementById('code-group');
+    const verifyCodeInput = document.getElementById('verify-code');
+    const emailVerifyStatus = document.getElementById('email-verify-status');
+
     const fields = {
       name: {
         el: document.getElementById('name'),
@@ -1061,7 +1114,12 @@
       email: {
         el: document.getElementById('email'),
         error: document.getElementById('email-error'),
-        validate: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : 'Enter a valid email address.'
+        validate: validateGmailField
+      },
+      code: {
+        el: verifyCodeInput,
+        error: document.getElementById('code-error'),
+        validate: v => /^\d{6}$/.test(v.trim()) ? '' : 'Enter the 6-digit code from your Gmail.'
       },
       message: {
         el: document.getElementById('message'),
@@ -1072,30 +1130,144 @@
 
     function validateField(key) {
       const field = fields[key];
+      if (!field?.el) return true;
       const msg = field.validate(field.el.value);
       field.error.textContent = msg;
       field.el.classList.toggle('error', !!msg);
       return !msg;
     }
 
-    Object.keys(fields).forEach(key => {
-      fields[key].el.addEventListener('blur', () => validateField(key));
+    function resetEmailVerification() {
+      verifiedEmailForCode = '';
+      if (codeGroup) codeGroup.hidden = true;
+      if (verifyCodeInput) verifyCodeInput.value = '';
+      if (fields.code.error) fields.code.error.textContent = '';
+      if (verifyCodeInput) verifyCodeInput.classList.remove('error');
+      if (emailVerifyStatus) {
+        emailVerifyStatus.hidden = true;
+        emailVerifyStatus.textContent = '';
+        emailVerifyStatus.classList.remove('is-verified');
+      }
+    }
+
+    if (!CONTACT_CONFIG.appsScriptUrl && emailVerifyStatus) {
+      emailVerifyStatus.hidden = false;
+      emailVerifyStatus.textContent = 'Contact backend not connected yet. Add your Google Apps Script URL in script.js.';
+    }
+
+    fields.email.el.addEventListener('input', () => {
+      const normalized = normalizeGmail(fields.email.el.value);
+      if (verifiedEmailForCode && normalized !== verifiedEmailForCode) {
+        resetEmailVerification();
+      }
     });
 
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const valid = Object.keys(fields).every(validateField);
-      const success = document.getElementById('form-success');
+    Object.keys(fields).forEach(key => {
+      if (fields[key].el) {
+        fields[key].el.addEventListener('blur', () => validateField(key));
+      }
+    });
 
-      if (valid) {
+    if (sendCodeBtn) {
+      sendCodeBtn.addEventListener('click', async () => {
+        if (formError) formError.hidden = true;
+        if (!validateField('email')) {
+          if (SciFiAudio.enabled) SciFiAudio.playError();
+          return;
+        }
+
+        const email = normalizeGmail(fields.email.el.value);
+        sendCodeBtn.disabled = true;
+        sendCodeBtn.textContent = 'Sending...';
+
+        if (emailVerifyStatus) {
+          emailVerifyStatus.hidden = false;
+          emailVerifyStatus.textContent = 'Sending verification code...';
+          emailVerifyStatus.classList.remove('is-verified');
+        }
+
+        try {
+          const data = await postToContactBackend({ action: 'sendCode', email });
+          verifiedEmailForCode = email;
+          if (codeGroup) codeGroup.hidden = false;
+          if (verifyCodeInput) verifyCodeInput.focus();
+          if (emailVerifyStatus) {
+            emailVerifyStatus.textContent = data.message || `Code sent to ${email}`;
+            emailVerifyStatus.classList.add('is-verified');
+          }
+        } catch (err) {
+          resetEmailVerification();
+          fields.email.error.textContent = err.message || 'Could not send verification code.';
+          fields.email.el.classList.add('error');
+          if (SciFiAudio.enabled) SciFiAudio.playError();
+        } finally {
+          sendCodeBtn.disabled = false;
+          sendCodeBtn.textContent = 'Send Code';
+        }
+      });
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      if (formError) formError.hidden = true;
+      if (formSuccess) formSuccess.hidden = true;
+
+      const valid = validateField('name') && validateField('email') && validateField('message');
+      if (!valid) {
+        if (SciFiAudio.enabled) SciFiAudio.playError();
+        return;
+      }
+
+      const email = normalizeGmail(fields.email.el.value);
+      if (!verifiedEmailForCode || email !== verifiedEmailForCode) {
+        fields.email.error.textContent = 'Send and confirm the verification code for your Gmail first.';
+        fields.email.el.classList.add('error');
+        if (SciFiAudio.enabled) SciFiAudio.playError();
+        return;
+      }
+
+      if (!validateField('code')) {
+        if (SciFiAudio.enabled) SciFiAudio.playError();
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Transmitting...';
+      }
+
+      try {
+        await postToContactBackend({
+          action: 'submit',
+          name: fields.name.el.value.trim(),
+          email,
+          code: fields.code.el.value.trim(),
+          message: fields.message.el.value.trim()
+        });
+
         if (SciFiAudio.enabled) SciFiAudio.playTransmit();
-        success.hidden = false;
+        if (formSuccess) formSuccess.hidden = false;
         form.reset();
-        Object.values(fields).forEach(f => f.el.classList.remove('error'));
+        Object.values(fields).forEach(f => {
+          if (f.el) f.el.classList.remove('error');
+        });
+        resetEmailVerification();
         showTransmissionSuccess();
-        setTimeout(() => { success.hidden = true; }, 5000);
-      } else if (SciFiAudio.enabled) {
-        SciFiAudio.playError();
+        window.setTimeout(() => {
+          if (formSuccess) formSuccess.hidden = true;
+        }, 5000);
+      } catch (err) {
+        if (formError) {
+          formError.textContent = err.message || 'Transmission failed. Please try again.';
+          formError.hidden = false;
+        }
+        if (SciFiAudio.enabled) SciFiAudio.playError();
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Launch Transmission';
+        }
       }
     });
   }
@@ -1148,6 +1320,9 @@
   const ACHIEVEMENT_SOUND_GAP = 380;
   const TOAST_STAGGER_MS = 340;
   const SOUND_LEAD_MS = 220;
+  const MOBILE_AUTO_DISMISS_MS = 3200;
+  const MOBILE_MQ = window.matchMedia('(max-width: 768px)');
+  const mobileAutoDismissTimers = new Map();
   let lastScrollY = window.scrollY;
   let scrollAchievementsReady = false;
   const SCROLL_ACTIVATE = 48;
@@ -1164,6 +1339,47 @@
 
   function getAchievementById(id) {
     return ACHIEVEMENTS.find(a => a.id === id);
+  }
+
+  function isMobileView() {
+    return MOBILE_MQ.matches;
+  }
+
+  function isScrollTriggeredAchievement(id) {
+    return SECTION_ORDER.includes(id) || id === 'scroll100';
+  }
+
+  function shouldPlayAchievementSound(achievement) {
+    if (!achievement) return false;
+    if (!isMobileView()) return true;
+    return achievement.type === 'form';
+  }
+
+  function clearMobileAutoDismiss(id) {
+    const timer = mobileAutoDismissTimers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      mobileAutoDismissTimers.delete(id);
+    }
+  }
+
+  function scheduleMobileAutoDismiss(id, achievement) {
+    if (!isMobileView() || !achievement) return;
+    if (achievement.type === 'form') return;
+
+    clearMobileAutoDismiss(id);
+    const timer = window.setTimeout(() => {
+      mobileAutoDismissTimers.delete(id);
+      dismissToast(id, false);
+    }, MOBILE_AUTO_DISMISS_MS);
+    mobileAutoDismissTimers.set(id, timer);
+  }
+
+  function dismissOtherMobileToasts(keepId) {
+    if (!isMobileView()) return;
+    [...toastStackOrder].forEach((id) => {
+      if (id !== keepId) dismissToast(id, false);
+    });
   }
 
   async function playAchievementSound(achievement) {
@@ -1275,6 +1491,8 @@
     const toast = toastById.get(id);
     if (!toast) return;
 
+    clearMobileAutoDismiss(id);
+
     if (idx !== -1) {
       toastStackOrder.splice(idx, 1);
       userDismissed.add(id);
@@ -1364,8 +1582,10 @@
     const existing = toastById.get(achievement.id);
     if (existing && !existing.classList.contains('leaving')) return;
 
+    dismissOtherMobileToasts(achievement.id);
     markUnlocked(achievement.id);
 
+    const playSound = withSound && shouldPlayAchievementSound(achievement);
     const toast = buildToastElement(achievement);
     achievementStack.appendChild(toast);
     toastById.set(achievement.id, toast);
@@ -1373,14 +1593,17 @@
 
     const revealToast = () => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => toast.classList.add('is-visible'));
+        requestAnimationFrame(() => {
+          toast.classList.add('is-visible');
+          scheduleMobileAutoDismiss(achievement.id, achievement);
+        });
       });
     };
 
-    if (withSound && soundFirst) {
+    if (playSound && soundFirst) {
       queueAchievementSound(achievement);
       setTimeout(revealToast, SOUND_LEAD_MS);
-    } else if (withSound) {
+    } else if (playSound) {
       revealToast();
       queueAchievementSound(achievement);
     } else {
@@ -1490,6 +1713,15 @@
     }
 
     if (missing.length === 0) return;
+
+    if (isMobileView()) {
+      const latestMissing = missing[missing.length - 1];
+      if (latestMissing && !toastById.has(latestMissing)) {
+        const achievement = getAchievementById(latestMissing);
+        if (achievement) pushToast(achievement, false, false);
+      }
+      return;
+    }
 
     const missingKey = missing.join(',');
     if (missingKey !== lastMissingKey) {
