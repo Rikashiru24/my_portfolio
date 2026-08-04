@@ -264,6 +264,21 @@
   let scrollThoughtIndex = -1;
   let scrollThoughtsVisible = false;
   let lastThoughtSound = 0;
+  let contactFormComposeMode = false;
+
+  function setContactComposeMode(active) {
+    if (contactFormComposeMode === active) return;
+    contactFormComposeMode = active;
+    document.body.classList.toggle('contact-compose-mode', active);
+    if (active) {
+      hideScrollThoughts();
+      return;
+    }
+    if (window.scrollY >= 280) {
+      showScrollThoughts();
+      setScrollThought(getReactionIndexForScroll(getScrollProgress()));
+    }
+  }
 
   function getScrollProgress() {
     const doc = document.documentElement;
@@ -338,7 +353,7 @@
 
   window.addEventListener('scroll', () => {
     const y = window.scrollY;
-    if (y < 280) {
+    if (y < 280 || contactFormComposeMode) {
       hideScrollThoughts();
       return;
     }
@@ -1108,6 +1123,15 @@
     const codeGroup = document.getElementById('code-group');
     const verifyCodeInput = document.getElementById('verify-code');
     const emailVerifyStatus = document.getElementById('email-verify-status');
+
+    form.addEventListener('focusin', () => setContactComposeMode(true));
+    form.addEventListener('focusout', () => {
+      window.setTimeout(() => {
+        if (!form.contains(document.activeElement)) {
+          setContactComposeMode(false);
+        }
+      }, 0);
+    });
 
     const fields = {
       name: {

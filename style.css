@@ -2008,6 +2008,19 @@ body.loaded .mission-hud {
   transform: translateX(0);
 }
 
+body.contact-compose-mode .mission-hud {
+  opacity: 0;
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+body.contact-compose-mode .scroll-thoughts {
+  opacity: 0 !important;
+  transform: translateY(-12px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .hud-corner {
   position: absolute;
   width: 10px;
