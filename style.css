@@ -2749,6 +2749,18 @@ body.contact-compose-mode .scroll-thoughts {
     padding: 1.35rem;
   }
 
+  .contact-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 1rem 0;
+  }
+
+  .contact-val {
+    line-height: 1.55;
+    word-break: break-word;
+  }
+
   .tech-tags { justify-content: center; }
 
   .footer-grid {
