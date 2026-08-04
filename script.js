@@ -265,18 +265,15 @@
   let scrollThoughtsVisible = false;
   let lastThoughtSound = 0;
   let contactFormComposeMode = false;
+  let lastOverlayScrollY = window.scrollY;
 
   function setContactComposeMode(active) {
     if (contactFormComposeMode === active) return;
     contactFormComposeMode = active;
     document.body.classList.toggle('contact-compose-mode', active);
     if (active) {
+      lastOverlayScrollY = window.scrollY;
       hideScrollThoughts();
-      return;
-    }
-    if (window.scrollY >= 280) {
-      showScrollThoughts();
-      setScrollThought(getReactionIndexForScroll(getScrollProgress()));
     }
   }
 
@@ -353,7 +350,19 @@
 
   window.addEventListener('scroll', () => {
     const y = window.scrollY;
-    if (y < 280 || contactFormComposeMode) {
+
+    if (contactFormComposeMode) {
+      hideScrollThoughts();
+      if (Math.abs(y - lastOverlayScrollY) > 10) {
+        contactFormComposeMode = false;
+        document.body.classList.remove('contact-compose-mode');
+        lastOverlayScrollY = y;
+      } else {
+        return;
+      }
+    }
+
+    if (y < 280) {
       hideScrollThoughts();
       return;
     }
@@ -1125,13 +1134,7 @@
     const emailVerifyStatus = document.getElementById('email-verify-status');
 
     form.addEventListener('focusin', () => setContactComposeMode(true));
-    form.addEventListener('focusout', () => {
-      window.setTimeout(() => {
-        if (!form.contains(document.activeElement)) {
-          setContactComposeMode(false);
-        }
-      }, 0);
-    });
+    form.addEventListener('pointerdown', () => setContactComposeMode(true));
 
     const fields = {
       name: {
