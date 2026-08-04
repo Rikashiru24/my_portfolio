@@ -4,11 +4,13 @@
  * Setup:
  * 1. Open https://script.google.com and create a new project
  * 2. Paste this file into Code.gs
- * 3. Deploy > New deployment > Web app
+ * 3. Services (+) → add "Gmail API" (helps move messages to Primary tab)
+ * 4. Deploy > New deployment > Web app
  *    - Execute as: Me
  *    - Who has access: Anyone
- * 4. Copy the web app URL into CONTACT_CONFIG.appsScriptUrl in script.js
- * 5. Submit the form once, approve Gmail permissions when Google asks
+ * 5. Copy the web app URL into CONTACT_CONFIG.appsScriptUrl in script.js
+ * 6. Submit the form once, approve Gmail + Drive permissions when Google asks
+ * 7. A Google Sheet log is created automatically on the first submission
  */
 
 const RECIPIENT_EMAIL = '2017harvinarisga@gmail.com';
@@ -17,10 +19,12 @@ const CODE_TTL_SECONDS = 600;
 const BLOCKED_GMAILS = ['test@gmail.com', 'fake@gmail.com', 'example@gmail.com', 'user@gmail.com'];
 
 function doGet() {
+  const sheetUrl = PropertiesService.getScriptProperties().getProperty('SUBMISSIONS_SHEET_URL');
   return jsonResponse({
     success: true,
     message: 'Portfolio contact backend is online.',
-    recipient: RECIPIENT_EMAIL
+    recipient: RECIPIENT_EMAIL,
+    submissionsSheet: sheetUrl || null
   });
 }
 
@@ -116,6 +120,7 @@ function handleSubmit(data) {
       }
     );
     markPortfolioInboxMessage(subject);
+    logSubmission(name, normalizedEmail, message);
   } catch (err) {
     return { success: false, error: 'Could not deliver your message: ' + (err.message || 'Gmail error.') };
   }
@@ -138,7 +143,7 @@ function handleSubmit(data) {
 
 function markPortfolioInboxMessage(subject) {
   try {
-    Utilities.sleep(800);
+    Utilities.sleep(1000);
     const safeSubject = subject.replace(/"/g, '\\"');
     const threads = GmailApp.search('subject:"' + safeSubject + '" newer_than:1d', 0, 1);
     if (!threads.length) return;
@@ -150,9 +155,51 @@ function markPortfolioInboxMessage(subject) {
     thread.addLabel(label);
     thread.markImportant();
     thread.moveToInbox();
+
+    const messages = thread.getMessages();
+    promoteMessageToPrimary(messages[messages.length - 1].getId());
   } catch (err) {
     /* Labeling is optional — delivery already succeeded. */
   }
+}
+
+function promoteMessageToPrimary(messageId) {
+  try {
+    Gmail.Users.Messages.modify('me', messageId, {
+      addLabelIds: ['CATEGORY_PERSONAL', 'IMPORTANT', 'INBOX'],
+      removeLabelIds: ['CATEGORY_UPDATES', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL']
+    });
+  } catch (err) {
+    /* Enable Gmail API under Services if Primary promotion is needed. */
+  }
+}
+
+function logSubmission(name, email, message) {
+  try {
+    const sheet = getSubmissionSheet();
+    sheet.appendRow([new Date(), name, email, message]);
+  } catch (err) {
+    /* Sheet logging is optional — email delivery already succeeded. */
+  }
+}
+
+function getSubmissionSheet() {
+  const props = PropertiesService.getScriptProperties();
+  const existingId = props.getProperty('SUBMISSIONS_SHEET_ID');
+  if (existingId) {
+    return SpreadsheetApp.openById(existingId).getSheetByName('Submissions')
+      || SpreadsheetApp.openById(existingId).getActiveSheet();
+  }
+
+  const ss = SpreadsheetApp.create('Portfolio Contact Submissions');
+  const sheet = ss.getActiveSheet();
+  sheet.setName('Submissions');
+  sheet.appendRow(['Timestamp', 'Name', 'Email', 'Message']);
+  sheet.setFrozenRows(1);
+
+  props.setProperty('SUBMISSIONS_SHEET_ID', ss.getId());
+  props.setProperty('SUBMISSIONS_SHEET_URL', ss.getUrl());
+  return sheet;
 }
 
 function escapeHtml(value) {
