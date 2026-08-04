@@ -14,6 +14,7 @@
 const RECIPIENT_EMAIL = '2017harvinarisga@gmail.com';
 const CACHE_PREFIX = 'portfolio_verify_';
 const CODE_TTL_SECONDS = 600;
+const BLOCKED_GMAILS = ['test@gmail.com', 'fake@gmail.com', 'example@gmail.com', 'user@gmail.com'];
 
 function doGet() {
   return jsonResponse({
@@ -50,11 +51,15 @@ function handleSendCode(email) {
   const code = String(Math.floor(100000 + Math.random() * 900000));
   CacheService.getScriptCache().put(CACHE_PREFIX + normalizedEmail, code, CODE_TTL_SECONDS);
 
-  GmailApp.sendEmail(
-    normalizedEmail,
-    'Portfolio verification code',
-    'Your verification code is: ' + code + '\n\nIt expires in 10 minutes.\n\nIf you did not request this, you can ignore this email.'
-  );
+  try {
+    GmailApp.sendEmail(
+      normalizedEmail,
+      'Portfolio verification code',
+      'Your verification code is: ' + code + '\n\nIt expires in 10 minutes.\n\nIf you did not request this, you can ignore this email.'
+    );
+  } catch (err) {
+    return { success: false, error: 'Could not send code to that Gmail. Use your real Gmail address.' };
+  }
 
   return { success: true, message: 'Verification code sent to your Gmail.' };
 }
@@ -94,14 +99,20 @@ function handleSubmit(data) {
       body,
       { replyTo: normalizedEmail, name: name }
     );
-
-    GmailApp.sendEmail(
-      normalizedEmail,
-      'Portfolio message received',
-      'Hi ' + name + ',\n\nYour message was sent to Harvin successfully.\n\n--- Your message ---\n' + message
-    );
   } catch (err) {
-    return { success: false, error: 'Could not send email: ' + (err.message || 'Gmail error.') };
+    return { success: false, error: 'Could not deliver your message: ' + (err.message || 'Gmail error.') };
+  }
+
+  try {
+    if (normalizedEmail !== RECIPIENT_EMAIL) {
+      GmailApp.sendEmail(
+        normalizedEmail,
+        'Portfolio message received',
+        'Hi ' + name + ',\n\nYour message was sent to Harvin successfully.\n\n--- Your message ---\n' + message
+      );
+    }
+  } catch (err) {
+    /* Optional receipt — do not fail the main delivery if this bounces later. */
   }
 
   CacheService.getScriptCache().remove(CACHE_PREFIX + normalizedEmail);
@@ -113,7 +124,11 @@ function normalizeGmail(email) {
   if (!/^[^\s@]+@(gmail|googlemail)\.com$/.test(value)) {
     return '';
   }
-  return value.replace(/@googlemail\.com$/, '@gmail.com');
+  const normalized = value.replace(/@googlemail\.com$/, '@gmail.com');
+  if (BLOCKED_GMAILS.indexOf(normalized) !== -1) {
+    return '';
+  }
+  return normalized;
 }
 
 function jsonResponse(payload) {

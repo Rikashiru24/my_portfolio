@@ -1081,17 +1081,21 @@
   /* --- Contact Form + Gmail Verification --- */
   const form = document.getElementById('contact-form');
   const GMAIL_PATTERN = /^[^\s@]+@(gmail|googlemail)\.com$/i;
+  const BLOCKED_GMAILS = ['test@gmail.com', 'fake@gmail.com', 'example@gmail.com', 'user@gmail.com'];
   let verifiedEmailForCode = '';
 
   function normalizeGmail(email) {
     const value = email.trim().toLowerCase();
     if (!GMAIL_PATTERN.test(value)) return '';
-    return value.replace(/@googlemail\.com$/, '@gmail.com');
+    const normalized = value.replace(/@googlemail\.com$/, '@gmail.com');
+    if (BLOCKED_GMAILS.includes(normalized)) return '';
+    return normalized;
   }
 
   function validateGmailField(value) {
     if (!value.trim()) return 'Enter your Gmail address.';
     if (!GMAIL_PATTERN.test(value.trim())) return 'Use a valid Gmail address (@gmail.com).';
+    if (BLOCKED_GMAILS.includes(normalizeGmail(value))) return 'Use your real Gmail address, not a placeholder like test@gmail.com.';
     return '';
   }
 
