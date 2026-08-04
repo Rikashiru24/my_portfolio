@@ -4,8 +4,8 @@
   'use strict';
 
   const CONTACT_CONFIG = {
-    recipientEmail: 'harvinarisga@gmail.com',
-    appsScriptUrl: 'https://script.google.com/macros/s/AKfycbxPQAAdMxCFDKWBREnEKQASmzmICezCR9qp3WyxYFSlYrNbrTFS6mUPkkp-Db2wkv_w/exec'
+    recipientEmail: '2017harvinarisga@gmail.com',
+    appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyPkXx8IpEDi-MErdtIqz5YQMO5jacszzrKMgCS285_ogJALgXHugGYmz6WxgHGG6Ut/exec'
   };
 
   /* --- Intro Splash --- */

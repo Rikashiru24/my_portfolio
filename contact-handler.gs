@@ -11,7 +11,7 @@
  * 5. Submit the form once, approve Gmail permissions when Google asks
  */
 
-const RECIPIENT_EMAIL = 'harvinarisga@gmail.com';
+const RECIPIENT_EMAIL = '2017harvinarisga@gmail.com';
 const CACHE_PREFIX = 'portfolio_verify_';
 const CODE_TTL_SECONDS = 600;
 
