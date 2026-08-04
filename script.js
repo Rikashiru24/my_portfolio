@@ -260,21 +260,31 @@
   const thoughtPortrait = document.getElementById('thought-portrait');
   const thoughtText = document.getElementById('thought-text');
   const thoughtBubble = document.getElementById('thought-bubble');
+  const contactSection = document.getElementById('contact');
 
   let scrollThoughtIndex = -1;
   let scrollThoughtsVisible = false;
   let lastThoughtSound = 0;
   let contactFormComposeMode = false;
-  let lastOverlayScrollY = window.scrollY;
+
+  function isContactSectionVisible() {
+    if (!contactSection) return false;
+    const rect = contactSection.getBoundingClientRect();
+    const viewHeight = window.innerHeight || document.documentElement.clientHeight;
+    return rect.bottom > 0 && rect.top < viewHeight;
+  }
 
   function setContactComposeMode(active) {
     if (contactFormComposeMode === active) return;
     contactFormComposeMode = active;
     document.body.classList.toggle('contact-compose-mode', active);
-    if (active) {
-      lastOverlayScrollY = window.scrollY;
-      hideScrollThoughts();
-    }
+    if (active) hideScrollThoughts();
+  }
+
+  function tryExitContactComposeMode() {
+    if (!contactFormComposeMode || isContactSectionVisible()) return false;
+    setContactComposeMode(false);
+    return true;
   }
 
   function getScrollProgress() {
@@ -353,13 +363,7 @@
 
     if (contactFormComposeMode) {
       hideScrollThoughts();
-      if (Math.abs(y - lastOverlayScrollY) > 10) {
-        contactFormComposeMode = false;
-        document.body.classList.remove('contact-compose-mode');
-        lastOverlayScrollY = y;
-      } else {
-        return;
-      }
+      if (!tryExitContactComposeMode()) return;
     }
 
     if (y < 280) {
@@ -1139,6 +1143,13 @@
 
     form.addEventListener('focusin', () => setContactComposeMode(true));
     form.addEventListener('pointerdown', () => setContactComposeMode(true));
+
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => setContactComposeMode(true));
+    }
+    if (sendCodeBtn) {
+      sendCodeBtn.addEventListener('click', () => setContactComposeMode(true));
+    }
 
     const fields = {
       name: {
