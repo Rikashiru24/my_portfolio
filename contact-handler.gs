@@ -18,7 +18,8 @@ const CODE_TTL_SECONDS = 600;
 function doGet() {
   return jsonResponse({
     success: true,
-    message: 'Portfolio contact backend is online.'
+    message: 'Portfolio contact backend is online.',
+    recipient: RECIPIENT_EMAIL
   });
 }
 
@@ -81,15 +82,30 @@ function handleSubmit(data) {
     return { success: false, error: 'Message must be at least 10 characters.' };
   }
 
-  GmailApp.sendEmail(
-    RECIPIENT_EMAIL,
-    'Portfolio transmission from ' + name,
-    'From: ' + name + '\nVerified Gmail: ' + normalizedEmail + '\n\n' + message,
-    { replyTo: normalizedEmail, name: name }
-  );
+  const body =
+    'From: ' + name + '\n' +
+    'Verified Gmail: ' + normalizedEmail + '\n\n' +
+    message;
+
+  try {
+    GmailApp.sendEmail(
+      RECIPIENT_EMAIL,
+      '[Portfolio] New message from ' + name,
+      body,
+      { replyTo: normalizedEmail, name: name }
+    );
+
+    GmailApp.sendEmail(
+      normalizedEmail,
+      'Portfolio message received',
+      'Hi ' + name + ',\n\nYour message was sent to Harvin successfully.\n\n--- Your message ---\n' + message
+    );
+  } catch (err) {
+    return { success: false, error: 'Could not send email: ' + (err.message || 'Gmail error.') };
+  }
 
   CacheService.getScriptCache().remove(CACHE_PREFIX + normalizedEmail);
-  return { success: true };
+  return { success: true, message: 'Message delivered to ' + RECIPIENT_EMAIL + '.' };
 }
 
 function normalizeGmail(email) {
