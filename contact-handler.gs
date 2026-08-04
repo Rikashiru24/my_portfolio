@@ -87,18 +87,35 @@ function handleSubmit(data) {
     return { success: false, error: 'Message must be at least 10 characters.' };
   }
 
+  const subject = name + ' sent a message through your portfolio';
   const body =
-    'From: ' + name + '\n' +
-    'Verified Gmail: ' + normalizedEmail + '\n\n' +
-    message;
+    name + ' wrote:\n\n' +
+    message + '\n\n' +
+    '---\n' +
+    'Reply to: ' + normalizedEmail + '\n' +
+    'Verified Gmail: ' + normalizedEmail;
+  const htmlBody =
+    '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1a1a1a;">' +
+    '<p style="margin:0 0 12px;"><strong>' + escapeHtml(name) + '</strong> sent you a message from your portfolio site.</p>' +
+    '<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #00f0ff;background:#f4f8fb;">' +
+    escapeHtml(message).replace(/\n/g, '<br>') +
+    '</blockquote>' +
+    '<p style="margin:0;font-size:13px;color:#555;">Reply to: <a href="mailto:' + escapeHtml(normalizedEmail) + '">' +
+    escapeHtml(normalizedEmail) + '</a></p>' +
+    '</div>';
 
   try {
     GmailApp.sendEmail(
       RECIPIENT_EMAIL,
-      '[Portfolio] New message from ' + name,
+      subject,
       body,
-      { replyTo: normalizedEmail, name: name }
+      {
+        replyTo: normalizedEmail,
+        name: name,
+        htmlBody: htmlBody
+      }
     );
+    markPortfolioInboxMessage(subject);
   } catch (err) {
     return { success: false, error: 'Could not deliver your message: ' + (err.message || 'Gmail error.') };
   }
@@ -117,6 +134,34 @@ function handleSubmit(data) {
 
   CacheService.getScriptCache().remove(CACHE_PREFIX + normalizedEmail);
   return { success: true, message: 'Message delivered to ' + RECIPIENT_EMAIL + '.' };
+}
+
+function markPortfolioInboxMessage(subject) {
+  try {
+    Utilities.sleep(800);
+    const safeSubject = subject.replace(/"/g, '\\"');
+    const threads = GmailApp.search('subject:"' + safeSubject + '" newer_than:1d', 0, 1);
+    if (!threads.length) return;
+
+    const thread = threads[0];
+    let label = GmailApp.getUserLabelByName('Portfolio Inquiries');
+    if (!label) label = GmailApp.createLabel('Portfolio Inquiries');
+
+    thread.addLabel(label);
+    thread.markImportant();
+    thread.moveToInbox();
+  } catch (err) {
+    /* Labeling is optional — delivery already succeeded. */
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function normalizeGmail(email) {
